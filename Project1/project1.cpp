@@ -780,15 +780,15 @@ InitGraphics()
 void
 InitLists()
 {
-	int NUMSEGS = 20;  // The number of points per circle within the spiral
-	float RADIUS = 0.5;
 	glutSetWindow(MainWindow);
 
 	// create the Spiral object:
 	// Creates the circle multiple times, increasing the Z-value each iteration.
 	// This creates the spiral effect.
 	// Each SpiralList list object has its own color.
-	float dang = 2. * M_PI / (float)(NUMSEGS - 1);
+	int NUMSEGS = 20;  // The number of points per circle within the spiral
+	float RADIUS = 0.5;
+	float dang = 2. * M_PI / (NUMSEGS - 1);
 	float ang = 0.;
 	float zVal = 0.f;
 	float r = 0.f;
@@ -808,7 +808,8 @@ InitLists()
 			glVertex3f(RADIUS * cos(ang), RADIUS * sin(ang), zVal);
 			ang += dang;
 			// This prevents a gap from appearing between the spirals, making them appear connected.
-			zVal += 0.015f;
+			if (j != NUMSEGS - 1)
+				zVal += 0.015f;
 		}
 		glEnd();
 		glEndList();
