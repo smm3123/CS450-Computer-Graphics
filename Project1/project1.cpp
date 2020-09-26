@@ -184,7 +184,7 @@ int		DebugOn;				// != 0 means to print debugging info
 int		DepthCueOn;				// != 0 means to use intensity depth cueing
 int		DepthBufferOn;			// != 0 means to use the z-buffer
 int		DepthFightingOn;		// != 0 means to force the creation of z-fighting
-GLuint	BoxList;				// object display list
+GLuint	SpiralList;				// object display list
 int		MainWindow;				// window id for main graphics window
 float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
@@ -405,7 +405,7 @@ Display()
 
 	// draw the current object:
 
-	glCallList(BoxList);
+	glCallList(SpiralList);
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
@@ -779,14 +779,13 @@ InitGraphics()
 void
 InitLists()
 {
-	int NUMSEGS = 20;
+	int NUMSEGS = 20;  // The number of points per circle within the spiral
 	float RADIUS = 0.5;
 	glutSetWindow(MainWindow);
 
-	// create the object:
-
-	BoxList = glGenLists(1);
-	glNewList(BoxList, GL_COMPILE);
+	// create the Spiral object:
+	SpiralList = glGenLists(1);
+	glNewList(SpiralList, GL_COMPILE);
 
 	float dang = 2. * M_PI / (float)(NUMSEGS - 1);
 	float ang = 0.;
@@ -795,6 +794,8 @@ InitLists()
 	glBegin(GL_LINE_STRIP);
 	glColor3f(0., 1., 1.);
 
+	// Creates the circle 5 times, increasing the Z-value each iteration.
+	// This creates the spiral effect.
 	for (int i = 0; i < (NUMSEGS * 5); i++) {
 		glVertex3f(RADIUS * cos(ang), RADIUS * sin(ang), zval);
 		ang += dang;
