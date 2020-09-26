@@ -184,7 +184,6 @@ int		DebugOn;				// != 0 means to print debugging info
 int		DepthCueOn;				// != 0 means to use intensity depth cueing
 int		DepthBufferOn;			// != 0 means to use the z-buffer
 int		DepthFightingOn;		// != 0 means to force the creation of z-fighting
-GLuint	SpiralList;				// object display list
 int		MainWindow;				// window id for main graphics window
 float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
@@ -192,7 +191,7 @@ int		WhichColor;				// index into Colors[ ]
 int		WhichProjection;		// ORTHO or PERSP
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
-
+GLuint	SpiralLists[6];			// Display lists for the spiral, each will have a different color
 
 // function prototypes:
 
@@ -404,8 +403,10 @@ Display()
 
 
 	// draw the current object:
-
-	glCallList(SpiralList);
+	// Iterates through each SpiralList object and draws it
+	for (GLuint spiralList : SpiralLists) {
+		glCallList(spiralList);
+	}
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
@@ -784,27 +785,49 @@ InitLists()
 	glutSetWindow(MainWindow);
 
 	// create the Spiral object:
-	SpiralList = glGenLists(1);
-	glNewList(SpiralList, GL_COMPILE);
-
+	// Creates the circle multiple times, increasing the Z-value each iteration.
+	// This creates the spiral effect.
+	// Each SpiralList list object has its own color.
 	float dang = 2. * M_PI / (float)(NUMSEGS - 1);
 	float ang = 0.;
-	float zval = 0.f;
-	glLineWidth(3);
-	glBegin(GL_LINE_STRIP);
-	glColor3f(0., 1., 1.);
+	float zVal = 0.f;
+	float r = 0.f;
+	float g = 0.f;
+	float b = 0.5f;
 
-	// Creates the circle 5 times, increasing the Z-value each iteration.
-	// This creates the spiral effect.
-	for (int i = 0; i < (NUMSEGS * 5); i++) {
-		glVertex3f(RADIUS * cos(ang), RADIUS * sin(ang), zval);
-		ang += dang;
-		zval += 0.015f;
+	// Iterate through the SpiralLists arary.
+	for (int i = 0; i < sizeof(SpiralLists); i++) {
+		SpiralLists[i] = glGenLists(1);
+		glNewList(SpiralLists[i], GL_COMPILE);
+		glLineWidth(3);
+		glBegin(GL_LINE_STRIP);
+		glColor3f(r, g, b);
+
+		// Draw the circle
+		for (int j = 0; j < NUMSEGS; j++) {
+			glVertex3f(RADIUS * cos(ang), RADIUS * sin(ang), zVal);
+			ang += dang;
+			// This prevents a gap from appearing between the spirals, making them appear connected.
+			zVal += 0.015f;
+		}
+		glEnd();
+		glEndList();
+
+		// Reset the values for the next DisplayList object
+		dang = 2. * M_PI / (float)(NUMSEGS - 1);
+		ang = 0.;
+
+		// Change the RGB value for the next circle
+		if (b < 1.) {
+			b += 0.5f;
+		}
+		else if (g < 1.) {
+			g += 0.5f;
+		}
+		else if (r < 1.) {
+			r += 0.5f;
+		}
 	}
-
-	glEnd();
-	glEndList();
-
 
 	// create the axes:
 
