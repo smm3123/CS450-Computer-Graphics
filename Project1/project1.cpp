@@ -795,7 +795,8 @@ InitLists()
 	float g = 0.f;
 	float b = 0.5f;
 
-	// Iterate through the SpiralLists arary.
+	// Iterate through the SpiralLists array.
+	// Each iteration will create a new display list to be displayed, creating a spiral with different colors.
 	for (int i = 0; i < sizeof(SpiralLists); i++) {
 		SpiralLists[i] = glGenLists(1);
 		glNewList(SpiralLists[i], GL_COMPILE);
