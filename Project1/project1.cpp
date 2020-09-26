@@ -816,7 +816,7 @@ InitLists()
 		glEndList();
 
 		// Reset the values for the next DisplayList object
-		dang = 2. * M_PI / (float)(NUMSEGS - 1);
+		dang = 2. * M_PI / (NUMSEGS - 1);
 		ang = 0.;
 
 		// Change the RGB value for the next circle
