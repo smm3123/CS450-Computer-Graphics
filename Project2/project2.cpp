@@ -412,7 +412,22 @@ Display()
 
 	// draw the current object:
 	glCallList(HelicopterList);
+
+	// Draw the top blade and apply transformations
+	glPushMatrix();
+	glTranslatef(0., 2.9, -2.);
+	glRotatef(90., 1., 0., 0.);
+	glScalef(5., 5., 5.);
 	glCallList(BladeList);
+	glPopMatrix();
+
+	// Draw the side blade and apply transformations
+	glPushMatrix();
+	glTranslatef(.5, 2.5, 9.);
+	glRotatef(90., 0., 1., 0.);
+	glScalef(1.5, 1.5, 1.5);
+	glCallList(BladeList);
+	glPopMatrix();
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
@@ -833,6 +848,7 @@ InitLists()
 	BladeList = glGenLists(1);
 	glNewList(BladeList, GL_COMPILE);
 	glBegin(GL_TRIANGLES);
+	glColor3f(1., 1., 1.);
 	glVertex2f(BLADE_RADIUS, BLADE_WIDTH / 2.);
 	glVertex2f(0., 0.);
 	glVertex2f(BLADE_RADIUS, -BLADE_WIDTH / 2.);
@@ -841,6 +857,7 @@ InitLists()
 	glVertex2f(0., 0.);
 	glVertex2f(-BLADE_RADIUS, BLADE_WIDTH / 2.);
 	glEnd();
+	glPopMatrix();
 	glEndList();
 
 	// create the axes:
