@@ -193,6 +193,12 @@ int		WhichProjection;		// ORTHO or PERSP
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 GLuint  HelicopterList;			// display list for the helicopter object
+GLuint  BladeList;				// display list for the helicopter blades
+
+// blade parameters:
+
+#define BLADE_RADIUS		 1.0
+#define BLADE_WIDTH			 0.4
 
 
 // function prototypes:
@@ -405,8 +411,8 @@ Display()
 
 
 	// draw the current object:
-
 	glCallList(HelicopterList);
+	glCallList(BladeList);
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
@@ -822,9 +828,22 @@ InitLists()
 	glPopMatrix();
 	glEndList();
 
+	// draw the helicopter blade with radius BLADE_RADIUS and
+	// width BLADE_WIDTH centered at (0.,0.,0.) in the XY plane
+	BladeList = glGenLists(1);
+	glNewList(BladeList, GL_COMPILE);
+	glBegin(GL_TRIANGLES);
+	glVertex2f(BLADE_RADIUS, BLADE_WIDTH / 2.);
+	glVertex2f(0., 0.);
+	glVertex2f(BLADE_RADIUS, -BLADE_WIDTH / 2.);
+
+	glVertex2f(-BLADE_RADIUS, -BLADE_WIDTH / 2.);
+	glVertex2f(0., 0.);
+	glVertex2f(-BLADE_RADIUS, BLADE_WIDTH / 2.);
+	glEnd();
+	glEndList();
 
 	// create the axes:
-
 	AxesList = glGenLists(1);
 	glNewList(AxesList, GL_COMPILE);
 	glLineWidth(AXES_WIDTH);
