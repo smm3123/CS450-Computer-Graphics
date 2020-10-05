@@ -200,6 +200,10 @@ GLuint  BladeList;				// display list for the helicopter blades
 #define BLADE_RADIUS		 1.0
 #define BLADE_WIDTH			 0.4
 
+// Animation parameters
+float Time;
+#define MS_IN_THE_ANIMATION_CYCLE	10000
+
 
 // function prototypes:
 
@@ -291,6 +295,9 @@ Animate()
 {
 	// put animation stuff in here -- change some global variables
 	// for Display( ) to find:
+	int ms = glutGet(GLUT_ELAPSED_TIME);	// milliseconds
+	ms %= MS_IN_THE_ANIMATION_CYCLE;
+	Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
 
 	// force a call to Display( ) next time it is convenient:
 
@@ -416,6 +423,7 @@ Display()
 	// Draw the top blade and apply transformations
 	glPushMatrix();
 	glTranslatef(0., 2.9, -2.);
+	glRotatef(360. * Time, 0., 1., 0.); // Add the spinning animation
 	glRotatef(90., 1., 0., 0.);
 	glScalef(5., 5., 5.);
 	glCallList(BladeList);
@@ -424,6 +432,7 @@ Display()
 	// Draw the side blade and apply transformations
 	glPushMatrix();
 	glTranslatef(.5, 2.5, 9.);
+	glRotatef(360. * Time * 3, 1., 0., 0.); // Add the spinning animation, rotating 3x as fast as the top blade
 	glRotatef(90., 0., 1., 0.);
 	glScalef(1.5, 1.5, 1.5);
 	glCallList(BladeList);
@@ -774,7 +783,7 @@ InitGraphics()
 	glutTabletButtonFunc(NULL);
 	glutMenuStateFunc(NULL);
 	glutTimerFunc(-1, NULL, 0);
-	glutIdleFunc(NULL);
+	glutIdleFunc(Animate);
 
 	// init glew (a window must be open to do this):
 
