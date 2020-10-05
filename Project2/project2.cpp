@@ -190,6 +190,7 @@ float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
 int		WhichColor;				// index into Colors[ ]
 int		WhichProjection;		// ORTHO or PERSP
+int		ViewPosition;		// Either inside or outside of the helicopter
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 GLuint  HelicopterList;			// display list for the helicopter object
@@ -218,6 +219,7 @@ void	DoDebugMenu(int);
 void	DoMainMenu(int);
 void	DoProjectMenu(int);
 void	DoShadowMenu();
+void	DoViewPositionMenu(int);
 void	DoRasterString(float, float, float, char*);
 void	DoStrokeString(float, float, float, float, char*);
 float	ElapsedSeconds();
@@ -498,6 +500,12 @@ DoAxesMenu(int id)
 }
 
 
+void DoViewPositionMenu(int id) {
+	ViewPosition = id;
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
+}
+
 void
 DoColorMenu(int id)
 {
@@ -664,6 +672,10 @@ InitMenus()
 	glutAddMenuEntry("Off", 0);
 	glutAddMenuEntry("On", 1);
 
+	int viewPositionMenu = glutCreateMenu(DoViewPositionMenu);
+	glutAddMenuEntry("Inside", 0);
+	glutAddMenuEntry("Outside", 1);
+
 	int depthcuemenu = glutCreateMenu(DoDepthMenu);
 	glutAddMenuEntry("Off", 0);
 	glutAddMenuEntry("On", 1);
@@ -702,6 +714,7 @@ InitMenus()
 
 	glutAddSubMenu("Depth Cue", depthcuemenu);
 	glutAddSubMenu("Projection", projmenu);
+	glutAddSubMenu("View", viewPositionMenu);
 
 #ifdef ENABLE_SHADOWS
 	glutAddSubMenu("Shadows", shadowsmenu);
