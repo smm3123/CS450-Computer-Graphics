@@ -190,7 +190,7 @@ float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
 int		WhichColor;				// index into Colors[ ]
 int		WhichProjection;		// ORTHO or PERSP
-int		ViewPosition;		// Either inside or outside of the helicopter
+int		ViewPosition;			// Either inside or outside of the helicopter
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 GLuint  HelicopterList;			// display list for the helicopter object
@@ -371,14 +371,19 @@ Display()
 
 
 	// set the eye position, look-at position, and up-vector:
-
-	gluLookAt(0., 0., 3., 0., 0., 0., 0., 1., 0.);
-
+	if (ViewPosition == 0) { // Outside view
+		gluLookAt(3., 5., 12., 0., 0., 0., 0., 1., 0.);
+	}
+	else { // Inside view
+		gluLookAt(-0.4, 1.8, -4.9, 0., 0., -10., 0., 1., 0.);
+	}
 
 	// rotate the scene:
 
-	glRotatef((GLfloat)Yrot, 0., 1., 0.);
-	glRotatef((GLfloat)Xrot, 1., 0., 0.);
+	if (ViewPosition == 0 || ViewPosition == 1) {
+		glRotatef((GLfloat)Yrot, 0., 1., 0.);
+		glRotatef((GLfloat)Xrot, 1., 0., 0.);
+	}
 
 
 	// uniformly scale the scene:
@@ -673,8 +678,8 @@ InitMenus()
 	glutAddMenuEntry("On", 1);
 
 	int viewPositionMenu = glutCreateMenu(DoViewPositionMenu);
-	glutAddMenuEntry("Inside", 0);
-	glutAddMenuEntry("Outside", 1);
+	glutAddMenuEntry("Outside", 0);
+	glutAddMenuEntry("Inside", 1);
 
 	int depthcuemenu = glutCreateMenu(DoDepthMenu);
 	glutAddMenuEntry("Off", 0);
@@ -1003,7 +1008,7 @@ MouseMotion(int x, int y)
 	int dx = x - Xmouse;		// change in mouse coords
 	int dy = y - Ymouse;
 
-	if ((ActiveButton & LEFT) != 0)
+	if (((ActiveButton & LEFT) != 0) && ViewPosition == 0)
 	{
 		Xrot += (ANGFACT * dy);
 		Yrot += (ANGFACT * dx);
