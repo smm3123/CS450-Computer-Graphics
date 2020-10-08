@@ -204,7 +204,7 @@ GLuint	OutsideObject;			// display list for the object outside of the helicopter
 
 // Animation parameters
 float Time;
-#define MS_IN_THE_ANIMATION_CYCLE	10000
+#define MS_IN_THE_ANIMATION_CYCLE	4000
 
 
 // function prototypes:
