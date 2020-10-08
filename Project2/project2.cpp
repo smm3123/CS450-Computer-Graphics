@@ -195,6 +195,7 @@ int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 GLuint  HelicopterList;			// display list for the helicopter object
 GLuint  BladeList;				// display list for the helicopter blades
+GLuint	OutsideObject;			// display list for the object outside of the helicopter to be looked at from the inside view
 
 // blade parameters:
 
@@ -375,7 +376,7 @@ Display()
 		gluLookAt(3., 5., 12., 0., 0., 0., 0., 1., 0.);
 	}
 	else { // Inside view
-		gluLookAt(-0.4, 1.8, -4.9, 0., 0., -10., 0., 1., 0.);
+		gluLookAt(-0.4, 1.8, -4.9, 0., 0., -12., 0., 1., 0.);
 	}
 
 	// rotate the scene:
@@ -443,6 +444,14 @@ Display()
 	glRotatef(90., 0., 1., 0.);
 	glScalef(1.5, 1.5, 1.5);
 	glCallList(BladeList);
+	glPopMatrix();
+
+	// Draw object to view from inside of the helicopter
+	glPushMatrix();
+	glTranslatef(0, 0, -20);
+	glRotatef(45., 1., 1., 0.);
+	glScalef(5., 5., 5.);
+	glCallList(OutsideObject);
 	glPopMatrix();
 
 #ifdef DEMO_Z_FIGHTING
@@ -827,6 +836,63 @@ InitGraphics()
 void
 InitLists()
 {
+	float dx = BOXSIZE / 2.f;
+	float dy = BOXSIZE / 2.f;
+	float dz = BOXSIZE / 2.f;
+	glutSetWindow(MainWindow);
+
+	// create the object to be viewed from the inside of the helicopter
+	OutsideObject = glGenLists(1);
+	glNewList(OutsideObject, GL_COMPILE);
+
+	glBegin(GL_QUADS);
+
+	glColor3f(0., 0., 1.);
+	glNormal3f(0., 0., 1.);
+	glVertex3f(-dx, -dy, dz);
+	glVertex3f(dx, -dy, dz);
+	glVertex3f(dx, dy, dz);
+	glVertex3f(-dx, dy, dz);
+
+	glNormal3f(0., 0., -1.);
+	glTexCoord2f(0., 0.);
+	glVertex3f(-dx, -dy, -dz);
+	glTexCoord2f(0., 1.);
+	glVertex3f(-dx, dy, -dz);
+	glTexCoord2f(1., 1.);
+	glVertex3f(dx, dy, -dz);
+	glTexCoord2f(1., 0.);
+	glVertex3f(dx, -dy, -dz);
+
+	glColor3f(1., 0., 0.);
+	glNormal3f(1., 0., 0.);
+	glVertex3f(dx, -dy, dz);
+	glVertex3f(dx, -dy, -dz);
+	glVertex3f(dx, dy, -dz);
+	glVertex3f(dx, dy, dz);
+
+	glNormal3f(-1., 0., 0.);
+	glVertex3f(-dx, -dy, dz);
+	glVertex3f(-dx, dy, dz);
+	glVertex3f(-dx, dy, -dz);
+	glVertex3f(-dx, -dy, -dz);
+
+	glColor3f(0., 1., 0.);
+	glNormal3f(0., 1., 0.);
+	glVertex3f(-dx, dy, dz);
+	glVertex3f(dx, dy, dz);
+	glVertex3f(dx, dy, -dz);
+	glVertex3f(-dx, dy, -dz);
+
+	glNormal3f(0., -1., 0.);
+	glVertex3f(-dx, -dy, dz);
+	glVertex3f(-dx, -dy, -dz);
+	glVertex3f(dx, -dy, -dz);
+	glVertex3f(dx, -dy, dz);
+
+	glEnd();
+	glEndList();
+
 	// Create the helicopter object
 	HelicopterList = glGenLists(1);
 	glNewList(HelicopterList, GL_COMPILE);
@@ -886,6 +952,7 @@ InitLists()
 	glEnd();
 	glPopMatrix();
 	glEndList();
+
 
 	// create the axes:
 	AxesList = glGenLists(1);
