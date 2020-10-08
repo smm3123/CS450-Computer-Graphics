@@ -1026,17 +1026,21 @@ MouseButton(int button, int state, int x, int y)
 		b = RIGHT;		break;
 
 	case SCROLL_WHEEL_UP:
-		Scale += SCLFACT * SCROLL_WHEEL_CLICK_FACTOR;
-		// keep object from turning inside-out or disappearing:
-		if (Scale < MINSCALE)
-			Scale = MINSCALE;
+		if (ViewPosition == 0) {
+			Scale += SCLFACT * SCROLL_WHEEL_CLICK_FACTOR;
+			// keep object from turning inside-out or disappearing:
+			if (Scale < MINSCALE)
+				Scale = MINSCALE;
+		}
 		break;
 
 	case SCROLL_WHEEL_DOWN:
-		Scale -= SCLFACT * SCROLL_WHEEL_CLICK_FACTOR;
-		// keep object from turning inside-out or disappearing:
-		if (Scale < MINSCALE)
-			Scale = MINSCALE;
+		if (ViewPosition == 0) {
+			Scale -= SCLFACT * SCROLL_WHEEL_CLICK_FACTOR;
+			// keep object from turning inside-out or disappearing:
+			if (Scale < MINSCALE)
+				Scale = MINSCALE;
+		}
 		break;
 
 	default:
