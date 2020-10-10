@@ -374,25 +374,20 @@ Display()
 	// set the eye position, look-at position, and up-vector:
 	if (ViewPosition == 0) { // Outside view
 		gluLookAt(3., 5., 12., 0., 0., 0., 0., 1., 0.);
+
+		// rotate the scene:
+		glRotatef((GLfloat)Yrot, 0., 1., 0.);
+		glRotatef((GLfloat)Xrot, 1., 0., 0.);
+
+
+		// uniformly scale the scene:
+		if (Scale < MINSCALE)
+			Scale = MINSCALE;
+		glScalef((GLfloat)Scale, (GLfloat)Scale, (GLfloat)Scale);
 	}
 	else { // Inside view
 		gluLookAt(-0.4, 1.8, -4.9, 0., 0., -12., 0., 1., 0.);
 	}
-
-	// rotate the scene:
-
-	if (ViewPosition == 0 || ViewPosition == 1) {
-		glRotatef((GLfloat)Yrot, 0., 1., 0.);
-		glRotatef((GLfloat)Xrot, 1., 0., 0.);
-	}
-
-
-	// uniformly scale the scene:
-
-	if (Scale < MINSCALE)
-		Scale = MINSCALE;
-	glScalef((GLfloat)Scale, (GLfloat)Scale, (GLfloat)Scale);
-
 
 	// set the fog parameters:
 
