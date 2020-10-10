@@ -387,6 +387,7 @@ Display()
 	}
 	else { // Inside view
 		gluLookAt(-0.4, 1.8, -4.9, 0., 0., -12., 0., 1., 0.);
+		Xrot = Yrot = 0.; // Reset rotation
 	}
 
 	// set the fog parameters:
