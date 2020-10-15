@@ -418,10 +418,14 @@ Display()
 
 
 	// draw the current object:
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, Tex0);
+	if (WhichTexture == 0) {
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, Tex0);
+	}
 	OsuSphere(radius, slices, stacks);
-	glDisable(GL_TEXTURE_2D);
+	if (WhichTexture == 0) {
+		glDisable(GL_TEXTURE_2D);
+	}
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
