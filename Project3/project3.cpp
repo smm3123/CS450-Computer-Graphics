@@ -190,6 +190,7 @@ float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
 int		WhichColor;				// index into Colors[ ]
 int		WhichProjection;		// ORTHO or PERSP
+int		WhichTexture;			// Options for altering the sphere's texture
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 GLuint	Tex0;					// Earth texture
@@ -217,6 +218,7 @@ void	DoDebugMenu(int);
 void	DoMainMenu(int);
 void	DoProjectMenu(int);
 void	DoShadowMenu();
+void	DoTextureMenu(int);
 void	DoRasterString(float, float, float, char*);
 void	DoStrokeString(float, float, float, float, char*);
 float	ElapsedSeconds();
@@ -572,6 +574,12 @@ DoShadowsMenu(int id)
 	glutPostRedisplay();
 }
 
+void DoTextureMenu(int id) {
+	WhichTexture = id;
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
+}
+
 
 // use glut to display a string of characters using a raster font:
 
@@ -663,9 +671,14 @@ InitMenus()
 	glutAddMenuEntry("Off", 0);
 	glutAddMenuEntry("On", 1);
 
+	int texturemenu = glutCreateMenu(DoTextureMenu);
+	glutAddMenuEntry("Earth Texture", 0);
+	glutAddMenuEntry("No Texture", 1);
+
 	int mainmenu = glutCreateMenu(DoMainMenu);
 	glutAddSubMenu("Axes", axesmenu);
 	glutAddSubMenu("Colors", colormenu);
+	glutAddSubMenu("Textures", texturemenu);
 
 #ifdef DEMO_DEPTH_BUFFER
 	glutAddSubMenu("Depth Buffer", depthbuffermenu);
