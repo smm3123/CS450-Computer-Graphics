@@ -297,6 +297,9 @@ Animate()
 {
 	// put animation stuff in here -- change some global variables
 	// for Display( ) to find:
+	int ms = glutGet(GLUT_ELAPSED_TIME);	// milliseconds
+	ms %= MS_IN_THE_ANIMATION_CYCLE;
+	Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
 
 	// force a call to Display( ) next time it is convenient:
 
@@ -418,12 +421,12 @@ Display()
 
 
 	// draw the current object:
-	if (WhichTexture == 0) {
+	if (WhichTexture == 0 || WhichTexture == 2) {
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, Tex0);
 	}
 	OsuSphere(radius, slices, stacks);
-	if (WhichTexture == 0) {
+	if (WhichTexture == 0 || WhichTexture == 2) {
 		glDisable(GL_TEXTURE_2D);
 	}
 
@@ -678,6 +681,7 @@ InitMenus()
 	int texturemenu = glutCreateMenu(DoTextureMenu);
 	glutAddMenuEntry("Earth Texture", 0);
 	glutAddMenuEntry("No Texture", 1);
+	glutAddMenuEntry("Distorted Texture", 2);
 
 	int mainmenu = glutCreateMenu(DoMainMenu);
 	glutAddSubMenu("Axes", axesmenu);
@@ -797,12 +801,13 @@ InitGraphics()
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glGenTextures(1, &Tex0);
 	glBindTexture(GL_TEXTURE_2D, Tex0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, EarthTexture);
+	glMatrixMode(GL_TEXTURE);
 }
 
 
@@ -1465,7 +1470,13 @@ OsuSphere(float radius, int slices, int stacks)
 			p->ny = y;
 			p->nz = z;
 			p->s = (lng + M_PI) / (2. * M_PI);
-			p->t = (lat + M_PI / 2.) / M_PI;
+			// Apply distortion to t value if option selected from Texture submenu
+			if (WhichTexture == 2) {
+				p->t = (lat + M_PI / 2.) / M_PI + (-2 * Time);
+			}
+			else {
+				p->t = (lat + M_PI / 2.) / M_PI;
+			}
 		}
 	}
 
