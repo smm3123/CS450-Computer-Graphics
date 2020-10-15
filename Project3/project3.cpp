@@ -192,6 +192,7 @@ int		WhichColor;				// index into Colors[ ]
 int		WhichProjection;		// ORTHO or PERSP
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
+GLuint	Tex0;					// Earth texture
 
 // Animation parameters
 float Time;
@@ -411,11 +412,14 @@ Display()
 	// since we are using glScalef( ), be sure normals get unitized:
 
 	glEnable(GL_NORMALIZE);
+	glPushMatrix();
 
 
 	// draw the current object:
-
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, Tex0);
 	OsuSphere(radius, slices, stacks);
+	glDisable(GL_TEXTURE_2D);
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
@@ -769,6 +773,19 @@ InitGraphics()
 	fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 #endif
 
+	int width, height;
+	width = 1024;
+	height = 512;
+	unsigned char* EarthTexture = BmpToTexture("worldtex.bmp", &width, &height);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glGenTextures(1, &Tex0);
+	glBindTexture(GL_TEXTURE_2D, Tex0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, EarthTexture);
 }
 
 
