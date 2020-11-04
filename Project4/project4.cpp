@@ -466,7 +466,7 @@ Display()
 	glEnable(GL_LIGHTING);
 	xyz spot1Position = { 5., -2., -2. };
 	xyz spot2Position = { 0., -3., 0. };
-	xyz pointPosition = { 10., 5., 0. };
+	xyz pointPosition = { 10., 3., 0. };
 
 	// draw the Batman object, and make it rotate:
 	glShadeModel(GL_FLAT);
@@ -481,24 +481,41 @@ Display()
 	glPopMatrix();
 	glDisable(GL_TEXTURE_2D);
 
+	// draw smooth shaded sphere object
+	glPushMatrix();
+	glShadeModel(GL_SMOOTH);
+	glTranslatef(1.f, 0.f, 2.f * (LightPositionAnimation));
+	glScalef(0.5f, 0.5f, 0.5f);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+
+	// draw flat shaded sphere object
+	glPushMatrix();
+	glShadeModel(GL_FLAT);
+	glTranslatef(-1.f, 0.f, 0.f);
+	glScalef(0.5f, 0.5f, 0.5f);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+
+	float smallSphereScale = 0.1f;
 	// draw a sphere on the moving point light
 	glPushMatrix();
 	glTranslatef(pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z);
-	glScalef(0.3f, 0.3f, 0.3f);
+	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
 	// draw a sphere on the first spot light
 	glPushMatrix();
 	glTranslatef(spot1Position.x, spot1Position.y, spot1Position.z);
-	glScalef(0.3f, 0.3f, 0.3f);
+	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
 	// draw a sphere on the second spot light
 	glPushMatrix();
 	glTranslatef(spot2Position.x, spot2Position.y, spot2Position.z);
-	glScalef(0.3f, 0.3f, 0.3f);
+	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
