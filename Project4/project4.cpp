@@ -203,8 +203,12 @@ GLuint	Batman;					// Batman.obj file
 GLuint	CementTex;					// Earth texture
 
 // Animation parameters
+float LightAnimation;
+bool Positive = true;
+float LightAnimationInterval = 0.005;
 float Time;
 #define MS_PER_CYCLE	7000
+#define LIGHT_MS_PER_CYCLE 10000
 
 
 // function prototypes:
@@ -303,6 +307,16 @@ Animate()
 	int ms = glutGet(GLUT_ELAPSED_TIME);
 	ms %= MS_PER_CYCLE;
 	Time = (float)ms / (float)MS_PER_CYCLE;		// [0.,1.)
+
+	if (LightAnimation >= 1)
+		Positive = false;
+	else if (LightAnimation <= -1)
+		Positive = true;
+
+	if (Positive)
+		LightAnimation += LightAnimationInterval;
+	else
+		LightAnimation -= LightAnimationInterval;
 
 	// force a call to Display( ) next time it is convenient:
 
@@ -428,15 +442,15 @@ Display()
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, CementTex);
-	xyz batmanPosition = { 100., 0., 0. };
+	xyz batmanPosition = { 30., -10., -10. };
 	glPushMatrix();
 	glTranslatef(0.f, -1.f, 0.f);
-	glRotatef(360. * Time, 0., 1., 0.);
+	//glRotatef(360. * Time, 0., 1., 0.);
 	glScalef(0.015f, 0.015f, 0.015f);
 	glCallList(Batman);
 	glPopMatrix();
-	SetSpotLight(GL_LIGHT1, batmanPosition.x, batmanPosition.y, batmanPosition.z, -batmanPosition.x, -batmanPosition.y, -batmanPosition.z, 1., 1., 1.);
-	//SetPointLight(GL_LIGHT0, batmanPosition.x, batmanPosition.y, batmanPosition.z, 1., 1., 1.);
+	//SetSpotLight(GL_LIGHT1, batmanPosition.x, batmanPosition.y, batmanPosition.z, -batmanPosition.x * LightAnimation, -batmanPosition.y, -batmanPosition.z, 1., 1., 1.);
+	SetPointLight(GL_LIGHT0, batmanPosition.x * LightAnimation, batmanPosition.y, batmanPosition.z, 1., 1., 1.);
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_LIGHTING);
 
@@ -792,6 +806,7 @@ InitGraphics()
 	fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 #endif
 
+	LightAnimation = 0;
 	int width, height;
 	width = 297;
 	height = 297;
