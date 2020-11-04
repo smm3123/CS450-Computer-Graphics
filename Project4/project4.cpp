@@ -159,7 +159,7 @@ const GLfloat Colors[][3] =
 	{ 1., 1., 1. },		// white
 	{ 0., 0., 0. },		// black
 };
-
+GLfloat White[] = { 1., 1., 1., 1. };
 // fog parameters:
 
 const GLfloat FOGCOLOR[4] = { .0, .0, .0, 1. };
@@ -204,12 +204,19 @@ GLuint	CementTex;				// Cement texture
 bool	Frozen;
 
 // Animation parameters
+float LightPositionAnimation;
 float LightAnimation;
-bool Positive = true;
+bool LightPositive = true;
+bool LightPositionPositive = true;
 float LightAnimationInterval = 0.005;
 float Time;
 #define MS_PER_CYCLE	7000
 #define LIGHT_MS_PER_CYCLE 10000
+
+// Sphere parameters
+int	radius = 1;
+int slices = 30;
+int stacks = 30;
 
 
 // function prototypes:
@@ -239,6 +246,7 @@ void	Resize(int, int);
 void	Visibility(int);
 void	SetPointLight(int ilight, float x, float y, float z, float r, float g, float b);
 void	SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b);
+void	SetMaterial(float r, float g, float b, float shininess);
 
 void			Axes(float);
 unsigned char* BmpToTexture(char*, int*, int*);
@@ -251,6 +259,7 @@ float			Dot(float[3], float[3]);
 float			Unit(float[3], float[3]);
 float* Array3(float a, float b, float c);
 float* MulArray3(float factor, float array0[3]);
+void			OsuSphere(float radius, int slices, int stacks);
 
 // main program:
 
@@ -309,12 +318,24 @@ Animate()
 	ms %= MS_PER_CYCLE;
 	Time = (float)ms / (float)MS_PER_CYCLE;		// [0.,1.)
 
-	if (LightAnimation >= 1)
-		Positive = false;
-	else if (LightAnimation <= -1)
-		Positive = true;
+	// Light Position animations
+	if (LightPositionAnimation >= 1)
+		LightPositionPositive = false;
+	else if (LightPositionAnimation <= -1)
+		LightPositionPositive = true;
 
-	if (Positive)
+	if (LightPositionPositive)
+		LightPositionAnimation += LightAnimationInterval;
+	else
+		LightPositionAnimation -= LightAnimationInterval;
+
+	// Light source animations
+	if (LightAnimation >= 1)
+		LightPositive = false;
+	else if (LightAnimation <= 0)
+		LightPositive = true;
+
+	if (LightPositive)
 		LightAnimation += LightAnimationInterval;
 	else
 		LightAnimation -= LightAnimationInterval;
@@ -437,22 +458,40 @@ Display()
 	glEnable(GL_NORMALIZE);
 
 
-	// draw the Batman object, and make it rotate:
 	glEnable(GL_LIGHTING);
+	xyz spotPosition = { 15., -10., -10. };
+	xyz pointPosition = { 10., 5., 0. };
+
+	// draw the Batman object, and make it rotate:
 	glShadeModel(GL_FLAT);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, CementTex);
-	xyz batmanPosition = { 30., -10., -10. };
 	glPushMatrix();
 	glTranslatef(0.f, -1.f, 0.f);
 	glRotatef(360. * Time, 0., 1., 0.);
 	glScalef(0.015f, 0.015f, 0.015f);
 	glCallList(Batman);
 	glPopMatrix();
-	//SetSpotLight(GL_LIGHT1, batmanPosition.x, batmanPosition.y, batmanPosition.z, -batmanPosition.x * LightAnimation, -batmanPosition.y, -batmanPosition.z, 1., 1., 1.);
-	SetPointLight(GL_LIGHT0, batmanPosition.x * LightAnimation, batmanPosition.y, batmanPosition.z, 1., 1., 1.);
 	glDisable(GL_TEXTURE_2D);
+
+	// draw a sphere on the moving point light
+	glPushMatrix();
+	glShadeModel(GL_SMOOTH);
+	glTranslatef(pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+
+	// draw a sphere on the spot light
+	glPushMatrix();
+	glShadeModel(GL_SMOOTH);
+	glTranslatef(spotPosition.x, spotPosition.y, spotPosition.z);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+
+	SetSpotLight(GL_LIGHT0, spotPosition.x, spotPosition.y, spotPosition.z, -spotPosition.x, -spotPosition.y, -spotPosition.z, 0., 0.8, 0.8);
+	SetPointLight(GL_LIGHT1, pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z, 1., 0., 0.);
+
 	glDisable(GL_LIGHTING);
 
 #ifdef DEMO_Z_FIGHTING
@@ -807,7 +846,7 @@ InitGraphics()
 	fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 #endif
 
-	LightAnimation = 0;
+	LightPositionAnimation = 0;
 	int width, height;
 	width = 297;
 	height = 297;
@@ -1444,4 +1483,167 @@ void SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir,
 	glLightf(ilight, GL_LINEAR_ATTENUATION, 0.);
 	glLightf(ilight, GL_QUADRATIC_ATTENUATION, 0.);
 	glEnable(ilight);
+}
+
+void SetMaterial(float r, float g, float b, float shininess)
+{
+	glMaterialfv(GL_BACK, GL_EMISSION, Array3(0., 0., 0.));
+	glMaterialfv(GL_BACK, GL_AMBIENT, MulArray3(.4f, White));
+	glMaterialfv(GL_BACK, GL_DIFFUSE, MulArray3(1., White));
+	glMaterialfv(GL_BACK, GL_SPECULAR, Array3(0., 0., 0.));
+	glMaterialf(GL_BACK, GL_SHININESS, 2.f);
+	glMaterialfv(GL_FRONT, GL_EMISSION, Array3(0., 0., 0.));
+	glMaterialfv(GL_FRONT, GL_AMBIENT, Array3(r, g, b));
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, Array3(r, g, b));
+	glMaterialfv(GL_FRONT, GL_SPECULAR, MulArray3(.8f, White));
+	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+}
+
+// Code for sphere
+struct point {
+	float x, y, z;		// coordinates
+	float nx, ny, nz;	// surface normal
+	float s, t;		// texture coords
+};
+
+static int		NumLngs, NumLats;
+static struct point* Pts;
+
+inline struct point*
+PtsPointer(int lat, int lng)
+{
+	if (lat < 0)	lat += (NumLats - 1);
+	if (lng < 0)	lng += (NumLngs - 1);
+	if (lat > NumLats - 1)	lat -= (NumLats - 1);
+	if (lng > NumLngs - 1)	lng -= (NumLngs - 1);
+	return &Pts[NumLngs * lat + lng];
+}
+
+inline void
+DrawPoint(struct point* p)
+{
+	glNormal3f(p->nx, p->ny, p->nz);
+	glTexCoord2f(p->s, p->t);
+	glVertex3f(p->x, p->y, p->z);
+}
+
+void
+OsuSphere(float radius, int slices, int stacks)
+{
+	struct point top, bot;		// top, bottom points
+	struct point* p;
+
+	// set the globals:
+
+	NumLngs = slices;
+	NumLats = stacks;
+
+	if (NumLngs < 3)
+		NumLngs = 3;
+
+	if (NumLats < 3)
+		NumLats = 3;
+
+
+	// allocate the point data structure:
+
+	Pts = new struct point[NumLngs * NumLats];
+
+
+	// fill the Pts structure:
+
+	for (int ilat = 0; ilat < NumLats; ilat++)
+	{
+		float lat = -M_PI / 2. + M_PI * (float)ilat / (float)(NumLats - 1);
+		float xz = cos(lat);
+		float y = sin(lat);
+		for (int ilng = 0; ilng < NumLngs; ilng++)
+		{
+			float lng = -M_PI + 2. * M_PI * (float)ilng / (float)(NumLngs - 1);
+			float x = xz * cos(lng);
+			float z = -xz * sin(lng);
+			p = PtsPointer(ilat, ilng);
+			p->x = radius * x;
+			p->y = radius * y;
+			p->z = radius * z;
+			p->nx = x;
+			p->ny = y;
+			p->nz = z;
+			p->s = (lng + M_PI) / (2. * M_PI);
+			p->t = (lat + M_PI / 2.) / M_PI;
+		}
+	}
+
+	top.x = 0.;		top.y = radius;	top.z = 0.;
+	top.nx = 0.;		top.ny = 1.;		top.nz = 0.;
+	top.s = 0.;		top.t = 1.;
+
+	bot.x = 0.;		bot.y = -radius;	bot.z = 0.;
+	bot.nx = 0.;		bot.ny = -1.;		bot.nz = 0.;
+	bot.s = 0.;		bot.t = 0.;
+
+
+	// connect the north pole to the latitude NumLats-2:
+
+	glBegin(GL_QUADS);
+	for (int ilng = 0; ilng < NumLngs - 1; ilng++)
+	{
+		p = PtsPointer(NumLats - 1, ilng);
+		DrawPoint(p);
+
+		p = PtsPointer(NumLats - 2, ilng);
+		DrawPoint(p);
+
+		p = PtsPointer(NumLats - 2, ilng + 1);
+		DrawPoint(p);
+
+		p = PtsPointer(NumLats - 1, ilng + 1);
+		DrawPoint(p);
+	}
+	glEnd();
+
+	// connect the south pole to the latitude 1:
+
+	glBegin(GL_QUADS);
+	for (int ilng = 0; ilng < NumLngs - 1; ilng++)
+	{
+		p = PtsPointer(0, ilng);
+		DrawPoint(p);
+
+		p = PtsPointer(0, ilng + 1);
+		DrawPoint(p);
+
+		p = PtsPointer(1, ilng + 1);
+		DrawPoint(p);
+
+		p = PtsPointer(1, ilng);
+		DrawPoint(p);
+	}
+	glEnd();
+
+
+	// connect the other 4-sided polygons:
+
+	glBegin(GL_QUADS);
+	for (int ilat = 2; ilat < NumLats - 1; ilat++)
+	{
+		for (int ilng = 0; ilng < NumLngs - 1; ilng++)
+		{
+			p = PtsPointer(ilat - 1, ilng);
+			DrawPoint(p);
+
+			p = PtsPointer(ilat - 1, ilng + 1);
+			DrawPoint(p);
+
+			p = PtsPointer(ilat, ilng + 1);
+			DrawPoint(p);
+
+			p = PtsPointer(ilat, ilng);
+			DrawPoint(p);
+		}
+	}
+	glEnd();
+
+	delete[] Pts;
+	Pts = NULL;
 }
