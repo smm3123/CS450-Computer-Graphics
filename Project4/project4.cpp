@@ -464,7 +464,8 @@ Display()
 
 
 	glEnable(GL_LIGHTING);
-	xyz spotPosition = { 5., -2., -2. };
+	xyz spot1Position = { 5., -2., -2. };
+	xyz spot2Position = { 0., -3., 0. };
 	xyz pointPosition = { 10., 5., 0. };
 
 	// draw the Batman object, and make it rotate:
@@ -487,15 +488,24 @@ Display()
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
-	// draw a sphere on the spot light
+	// draw a sphere on the first spot light
 	glPushMatrix();
-	glTranslatef(spotPosition.x, spotPosition.y, spotPosition.z);
+	glTranslatef(spot1Position.x, spot1Position.y, spot1Position.z);
 	glScalef(0.3f, 0.3f, 0.3f);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
-	SetSpotLight(GL_LIGHT0, spotPosition.x, spotPosition.y, spotPosition.z, -spotPosition.x, -spotPosition.y, -spotPosition.z, 0., 0.8, 0.8);
+	// draw a sphere on the second spot light
+	glPushMatrix();
+	glTranslatef(spot2Position.x, spot2Position.y, spot2Position.z);
+	glScalef(0.3f, 0.3f, 0.3f);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+
+	SetSpotLight(GL_LIGHT0, spot1Position.x, spot1Position.y, spot1Position.z, -spot1Position.x, -spot1Position.y, -spot1Position.z, 0., 0.8, 0.8);
 	SetPointLight(GL_LIGHT1, pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z, 1., 0., 0.);
+	SetSpotLight(GL_LIGHT2, spot2Position.x, spot2Position.y, spot2Position.z, -spot2Position.x, -spot2Position.y, -spot2Position.z, 1., 1., 1.);
+
 	if (Light0On)
 		glEnable(GL_LIGHT0);
 	else
@@ -504,6 +514,10 @@ Display()
 		glEnable(GL_LIGHT1);
 	else
 		glDisable(GL_LIGHT1);
+	if (Light2On)
+		glEnable(GL_LIGHT2);
+	else
+		glDisable(GL_LIGHT2);
 
 	glDisable(GL_LIGHTING);
 
@@ -944,7 +958,7 @@ Keyboard(unsigned char c, int x, int y)
 		Light1On = !Light1On;
 		break;
 	case '2':
-		Light1On = !Light2On;
+		Light2On = !Light2On;
 		break;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
