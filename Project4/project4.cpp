@@ -464,7 +464,7 @@ Display()
 
 
 	glEnable(GL_LIGHTING);
-	xyz spotPosition = { 15., -10., -10. };
+	xyz spotPosition = { 5., -2., -2. };
 	xyz pointPosition = { 10., 5., 0. };
 
 	// draw the Batman object, and make it rotate:
@@ -482,15 +482,15 @@ Display()
 
 	// draw a sphere on the moving point light
 	glPushMatrix();
-	glShadeModel(GL_SMOOTH);
 	glTranslatef(pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z);
+	glScalef(0.3f, 0.3f, 0.3f);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
 	// draw a sphere on the spot light
 	glPushMatrix();
-	glShadeModel(GL_SMOOTH);
 	glTranslatef(spotPosition.x, spotPosition.y, spotPosition.z);
+	glScalef(0.3f, 0.3f, 0.3f);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
