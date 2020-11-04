@@ -200,7 +200,8 @@ int		WhichProjection;		// ORTHO or PERSP
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 GLuint	Batman;					// Batman.obj file
-GLuint	CementTex;					// Earth texture
+GLuint	CementTex;				// Cement texture
+bool	Frozen;
 
 // Animation parameters
 float LightAnimation;
@@ -445,7 +446,7 @@ Display()
 	xyz batmanPosition = { 30., -10., -10. };
 	glPushMatrix();
 	glTranslatef(0.f, -1.f, 0.f);
-	//glRotatef(360. * Time, 0., 1., 0.);
+	glRotatef(360. * Time, 0., 1., 0.);
 	glScalef(0.015f, 0.015f, 0.015f);
 	glCallList(Batman);
 	glPopMatrix();
@@ -876,7 +877,14 @@ Keyboard(unsigned char c, int x, int y)
 	case ESCAPE:
 		DoMainMenu(QUIT);	// will not return here
 		break;				// happy compiler
-
+	case 'f':
+	case 'F':
+		Frozen = !Frozen;
+		if (Frozen)
+			glutIdleFunc(NULL);
+		else
+			glutIdleFunc(Animate);
+		break;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
 	}
