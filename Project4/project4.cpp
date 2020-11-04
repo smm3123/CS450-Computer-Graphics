@@ -139,6 +139,12 @@ char* ColorNames[] =
 	"Black"
 };
 
+struct xyz {
+	float x;
+	float y;
+	float z;
+};
+
 // the color definitions:
 // this order must match the menu order
 
@@ -226,6 +232,8 @@ void	MouseMotion(int, int);
 void	Reset();
 void	Resize(int, int);
 void	Visibility(int);
+void	SetPointLight(int ilight, float x, float y, float z, float r, float g, float b);
+void	SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b);
 
 void			Axes(float);
 unsigned char* BmpToTexture(char*, int*, int*);
@@ -236,7 +244,8 @@ short			ReadShort(FILE*);
 void			Cross(float[3], float[3], float[3]);
 float			Dot(float[3], float[3]);
 float			Unit(float[3], float[3]);
-
+float* Array3(float a, float b, float c);
+float* MulArray3(float factor, float array0[3]);
 
 // main program:
 
@@ -414,15 +423,22 @@ Display()
 
 
 	// draw the Batman object, and make it rotate:
+	glEnable(GL_LIGHTING);
+	glShadeModel(GL_FLAT);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, CementTex);
+	xyz batmanPosition = { 100., 0., 0. };
 	glPushMatrix();
 	glTranslatef(0.f, -1.f, 0.f);
 	glRotatef(360. * Time, 0., 1., 0.);
-	glScalef(0.02f, 0.02f, 0.02f);
+	glScalef(0.015f, 0.015f, 0.015f);
 	glCallList(Batman);
 	glPopMatrix();
+	SetSpotLight(GL_LIGHT1, batmanPosition.x, batmanPosition.y, batmanPosition.z, -batmanPosition.x, -batmanPosition.y, -batmanPosition.z, 1., 1., 1.);
+	//SetPointLight(GL_LIGHT0, batmanPosition.x, batmanPosition.y, batmanPosition.z, 1., 1., 1.);
 	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_LIGHTING);
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
@@ -1357,4 +1373,52 @@ float
 Dot(float v1[3], float v2[3])
 {
 	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+}
+
+float* Array3(float a, float b, float c)
+{
+	static float array[4];
+	array[0] = a;
+	array[1] = b;
+	array[2] = c;
+	array[3] = 1.;
+	return array;
+}
+
+// utility to create an array from a multiplier and an array:
+float* MulArray3(float factor, float array0[3])
+{
+	static float array[4];
+	array[0] = factor * array0[0];
+	array[1] = factor * array0[1];
+	array[2] = factor * array0[2];
+	array[3] = 1.;
+	return array;
+}
+
+void SetPointLight(int ilight, float x, float y, float z, float r, float g, float b)
+{
+	glLightfv(ilight, GL_POSITION, Array3(x, y, z));
+	glLightfv(ilight, GL_AMBIENT, Array3(0., 0., 0.));
+	glLightfv(ilight, GL_DIFFUSE, Array3(r, g, b));
+	glLightfv(ilight, GL_SPECULAR, Array3(r, g, b));
+	glLightf(ilight, GL_CONSTANT_ATTENUATION, 1.);
+	glLightf(ilight, GL_LINEAR_ATTENUATION, 0.);
+	glLightf(ilight, GL_QUADRATIC_ATTENUATION, 0.);
+	glEnable(ilight);
+}
+
+void SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b)
+{
+	glLightfv(ilight, GL_POSITION, Array3(x, y, z));
+	glLightfv(ilight, GL_SPOT_DIRECTION, Array3(xdir, ydir, zdir));
+	glLightf(ilight, GL_SPOT_EXPONENT, 1.);
+	glLightf(ilight, GL_SPOT_CUTOFF, 45.);
+	glLightfv(ilight, GL_AMBIENT, Array3(0., 0., 0.));
+	glLightfv(ilight, GL_DIFFUSE, Array3(r, g, b));
+	glLightfv(ilight, GL_SPECULAR, Array3(r, g, b));
+	glLightf(ilight, GL_CONSTANT_ATTENUATION, 1.);
+	glLightf(ilight, GL_LINEAR_ATTENUATION, 0.);
+	glLightf(ilight, GL_QUADRATIC_ATTENUATION, 0.);
+	glEnable(ilight);
 }
