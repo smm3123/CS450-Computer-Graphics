@@ -201,7 +201,12 @@ int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 GLuint	Batman;					// Batman.obj file
 GLuint	CementTex;				// Cement texture
-bool	Frozen;
+bool	Frozen;					// Parameter for if the animation is frozen or not
+
+// Light parameters
+bool Light0On = true;
+bool Light1On = true;
+bool Light2On = true;
 
 // Animation parameters
 float LightPositionAnimation;
@@ -491,6 +496,14 @@ Display()
 
 	SetSpotLight(GL_LIGHT0, spotPosition.x, spotPosition.y, spotPosition.z, -spotPosition.x, -spotPosition.y, -spotPosition.z, 0., 0.8, 0.8);
 	SetPointLight(GL_LIGHT1, pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z, 1., 0., 0.);
+	if (Light0On)
+		glEnable(GL_LIGHT0);
+	else
+		glDisable(GL_LIGHT0);
+	if (Light1On)
+		glEnable(GL_LIGHT1);
+	else
+		glDisable(GL_LIGHT1);
 
 	glDisable(GL_LIGHTING);
 
@@ -923,6 +936,15 @@ Keyboard(unsigned char c, int x, int y)
 			glutIdleFunc(NULL);
 		else
 			glutIdleFunc(Animate);
+		break;
+	case '0':
+		Light0On = !Light0On;
+		break;
+	case '1':
+		Light1On = !Light1On;
+		break;
+	case '2':
+		Light1On = !Light2On;
 		break;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
