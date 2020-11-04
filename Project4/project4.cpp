@@ -497,23 +497,37 @@ Display()
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
+	glDisable(GL_LIGHTING);
+
 	float smallSphereScale = 0.1f;
-	// draw a sphere on the moving point light
+	// draw a sphere on the first spot light
 	glPushMatrix();
-	glTranslatef(pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z);
+	if (Light0On)
+		glColor3f(0., 0.8, 0.8);
+	else
+		glColor3f(0., 0., 0.);
+	glTranslatef(spot1Position.x, spot1Position.y, spot1Position.z);
 	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
-	// draw a sphere on the first spot light
+	// draw a sphere on the moving point light
 	glPushMatrix();
-	glTranslatef(spot1Position.x, spot1Position.y, spot1Position.z);
+	if (Light1On)
+		glColor3f(1., 0., 0.);
+	else
+		glColor3f(0., 0., 0.);
+	glTranslatef(pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z);
 	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 
 	// draw a sphere on the second spot light
 	glPushMatrix();
+	if (Light2On)
+		glColor3f(1., 1., 1.);
+	else
+		glColor3f(0., 0., 0.);
 	glTranslatef(spot2Position.x, spot2Position.y, spot2Position.z);
 	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
 	OsuSphere(radius, slices, stacks);
@@ -522,6 +536,7 @@ Display()
 	SetSpotLight(GL_LIGHT0, spot1Position.x, spot1Position.y, spot1Position.z, -spot1Position.x, -spot1Position.y, -spot1Position.z, 0., 0.8, 0.8);
 	SetPointLight(GL_LIGHT1, pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z, 1., 0., 0.);
 	SetSpotLight(GL_LIGHT2, spot2Position.x, spot2Position.y, spot2Position.z, -spot2Position.x, -spot2Position.y, -spot2Position.z, 1., 1., 1.);
+
 
 	if (Light0On)
 		glEnable(GL_LIGHT0);
@@ -536,7 +551,6 @@ Display()
 	else
 		glDisable(GL_LIGHT2);
 
-	glDisable(GL_LIGHTING);
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
@@ -1545,6 +1559,7 @@ void SetMaterial(float r, float g, float b, float shininess)
 	glMaterialfv(GL_BACK, GL_DIFFUSE, MulArray3(1., White));
 	glMaterialfv(GL_BACK, GL_SPECULAR, Array3(0., 0., 0.));
 	glMaterialf(GL_BACK, GL_SHININESS, 2.f);
+
 	glMaterialfv(GL_FRONT, GL_EMISSION, Array3(0., 0., 0.));
 	glMaterialfv(GL_FRONT, GL_AMBIENT, Array3(r, g, b));
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, Array3(r, g, b));
