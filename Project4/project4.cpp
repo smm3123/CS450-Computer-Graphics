@@ -470,6 +470,7 @@ Display()
 
 	// draw the Batman object, and make it rotate:
 	glShadeModel(GL_FLAT);
+	SetMaterial(1, 1, 1, 10);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, CementTex);
@@ -484,6 +485,7 @@ Display()
 	// draw smooth shaded sphere object
 	glPushMatrix();
 	glShadeModel(GL_SMOOTH);
+	SetMaterial(0.3, 0.7, 0.5, 30);
 	glTranslatef(1.f, 0.f, 2.f * (LightPositionAnimation));
 	glScalef(0.5f, 0.5f, 0.5f);
 	OsuSphere(radius, slices, stacks);
@@ -492,6 +494,7 @@ Display()
 	// draw flat shaded sphere object
 	glPushMatrix();
 	glShadeModel(GL_FLAT);
+	SetMaterial(0.6, 0.2, 0.9, 5);
 	glTranslatef(-1.f, 0.f, 0.f);
 	glScalef(0.5f, 0.5f, 0.5f);
 	OsuSphere(radius, slices, stacks);
