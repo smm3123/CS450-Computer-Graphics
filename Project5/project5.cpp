@@ -15,6 +15,7 @@
 #include <GL/glu.h>
 #include "glut.h"
 #include "glslprogram.h"
+#include "glslprogram.cpp"
 
 
 //	This is a sample OpenGL / GLUT program
@@ -775,6 +776,18 @@ InitGraphics()
 	fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 #endif
 
+	Pattern = new GLSLProgram();
+	bool valid = Pattern->Create("pattern.vert", "pattern.frag");
+	if (!valid)
+	{
+		fprintf(stderr, "Shader cannot be created!\n");
+		DoMainMenu(QUIT);
+	}
+	else
+	{
+		fprintf(stderr, "Shader created.\n");
+	}
+	Pattern->SetVerbose(false);
 }
 
 
