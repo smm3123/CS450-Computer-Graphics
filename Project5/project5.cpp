@@ -14,6 +14,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include "glut.h"
+#include "glslprogram.h"
 
 
 //	This is a sample OpenGL / GLUT program
@@ -192,6 +193,8 @@ int		WhichColor;				// index into Colors[ ]
 int		WhichProjection;		// ORTHO or PERSP
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
+
+GLSLProgram* Pattern;
 
 // Sphere parameters
 int	radius = 1;
