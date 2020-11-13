@@ -17,7 +17,6 @@
 #include "glslprogram.h"
 #include "glslprogram.cpp"
 
-
 //	This is a sample OpenGL / GLUT program
 //
 //	The objective is to draw a 3d object and change the color of the axes
@@ -140,6 +139,12 @@ char* ColorNames[] =
 	"Black"
 };
 
+struct xyz {
+	float x;
+	float y;
+	float z;
+};
+
 // the color definitions:
 // this order must match the menu order
 
@@ -154,6 +159,7 @@ const GLfloat Colors[][3] =
 	{ 1., 1., 1. },		// white
 	{ 0., 0., 0. },		// black
 };
+
 GLfloat White[] = { 1., 1., 1., 1. };
 
 // fog parameters:
@@ -187,25 +193,30 @@ int		DebugOn;				// != 0 means to print debugging info
 int		DepthCueOn;				// != 0 means to use intensity depth cueing
 int		DepthBufferOn;			// != 0 means to use the z-buffer
 int		DepthFightingOn;		// != 0 means to force the creation of z-fighting
-GLuint	BoxList;				// object display list
+GLuint	SphereList;				// object display list
 int		MainWindow;				// window id for main graphics window
 float	Scale;					// scaling factor
 int		ShadowsOn;				// != 0 means to turn shadows on
 int		WhichColor;				// index into Colors[ ]
 int		WhichProjection;		// ORTHO or PERSP
+int		WhichTexture;			// Options for altering the sphere's texture
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
+GLuint	Tex0;					// Earth texture
+float	ShaderAnimation;		// Value for shader animation
+bool	ShaderAnimationPositive;// Value for if the value should be incrementing or decrementing
 
 GLSLProgram* Pattern;
+
+// Animation parameters
+float Time;
+#define MS_IN_THE_ANIMATION_CYCLE	4000
 
 // Sphere parameters
 int	radius = 1;
 int slices = 30;
 int stacks = 30;
 
-// Animation parameters
-float Time;
-#define MS_PER_CYCLE	7000
 
 // function prototypes:
 
@@ -220,6 +231,7 @@ void	DoDebugMenu(int);
 void	DoMainMenu(int);
 void	DoProjectMenu(int);
 void	DoShadowMenu();
+void	DoTextureMenu(int);
 void	DoRasterString(float, float, float, char*);
 void	DoStrokeString(float, float, float, float, char*);
 float	ElapsedSeconds();
@@ -232,10 +244,6 @@ void	MouseMotion(int, int);
 void	Reset();
 void	Resize(int, int);
 void	Visibility(int);
-void	OsuSphere(float radius, int slices, int stacks);
-void	SetPointLight(int ilight, float x, float y, float z, float r, float g, float b);
-void	SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b);
-void	SetMaterial(float r, float g, float b, float shininess);
 
 void			Axes(float);
 unsigned char* BmpToTexture(char*, int*, int*);
@@ -246,10 +254,11 @@ short			ReadShort(FILE*);
 void			Cross(float[3], float[3], float[3]);
 float			Dot(float[3], float[3]);
 float			Unit(float[3], float[3]);
-
+void			OsuSphere(float radius, int slices, int stacks);
 float* Array3(float a, float b, float c);
 float* MulArray3(float factor, float array0[3]);
-
+void			SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b);
+void			SetMaterial(float r, float g, float b, float shininess);
 // main program:
 
 int
@@ -303,9 +312,22 @@ Animate()
 {
 	// put animation stuff in here -- change some global variables
 	// for Display( ) to find:
-	int ms = glutGet(GLUT_ELAPSED_TIME);		// milliseconds
-	ms %= MS_PER_CYCLE;
-	Time = (float)ms / (float)MS_PER_CYCLE;        // [ 0., 1. ).
+	int ms = glutGet(GLUT_ELAPSED_TIME);	// milliseconds
+	ms %= MS_IN_THE_ANIMATION_CYCLE;
+	Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
+
+	float animationInterval = 0.01;
+
+	// Light Position animations
+	if (ShaderAnimation >= 1)
+		ShaderAnimationPositive = false;
+	else if (ShaderAnimation <= -1)
+		ShaderAnimationPositive = true;
+
+	if (ShaderAnimationPositive)
+		ShaderAnimation += animationInterval;
+	else
+		ShaderAnimation -= animationInterval;
 
 	// force a call to Display( ) next time it is convenient:
 
@@ -423,13 +445,26 @@ Display()
 	// since we are using glScalef( ), be sure normals get unitized:
 
 	glEnable(GL_NORMALIZE);
+	glEnable(GL_LIGHTING);
+	glPushMatrix();
 
-
-	// draw the current object:
 	Pattern->Use();
-	Pattern->SetUniformVariable("uTime", Time);
-	OsuSphere(radius, slices, stacks);
+	Pattern->SetUniformVariable("uTime", ShaderAnimation);
+	// draw the current object:
+	glShadeModel(GL_FLAT);
+	if (WhichTexture == 0 || WhichTexture == 2) {
+		glEnable(GL_TEXTURE_2D);
+		//glBindTexture(GL_TEXTURE_2D, Tex0);
+	}
+	glCallList(SphereList);
+	SetMaterial(0.5, 0.3, 1., 10);
+	if (WhichTexture == 0 || WhichTexture == 2) {
+		glDisable(GL_TEXTURE_2D);
+	}
 	Pattern->Use(0);
+
+	xyz spot1Position = { 5., -2., -2. };
+	SetSpotLight(GL_LIGHT0, spot1Position.x, spot1Position.y, spot1Position.z, -spot1Position.x, -spot1Position.y, -spot1Position.z, 1, 1, 1);
 
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
@@ -440,14 +475,6 @@ Display()
 		glPopMatrix();
 	}
 #endif
-
-
-	// draw some gratuitous text that just rotates on top of the scene:
-
-	/*glDisable(GL_DEPTH_TEST);
-	glColor3f(0., 1., 1.);
-	DoRasterString(0., 1., 0., "Text That Moves");*/
-
 
 	// draw some gratuitous text that is fixed on the screen:
 	//
@@ -590,6 +617,12 @@ DoShadowsMenu(int id)
 	glutPostRedisplay();
 }
 
+void DoTextureMenu(int id) {
+	WhichTexture = id;
+	glutSetWindow(MainWindow);
+	glutPostRedisplay();
+}
+
 
 // use glut to display a string of characters using a raster font:
 
@@ -681,9 +714,15 @@ InitMenus()
 	glutAddMenuEntry("Off", 0);
 	glutAddMenuEntry("On", 1);
 
+	int texturemenu = glutCreateMenu(DoTextureMenu);
+	glutAddMenuEntry("Earth Texture", 0);
+	glutAddMenuEntry("No Texture", 1);
+	glutAddMenuEntry("Distorted Texture", 2);
+
 	int mainmenu = glutCreateMenu(DoMainMenu);
 	glutAddSubMenu("Axes", axesmenu);
 	glutAddSubMenu("Colors", colormenu);
+	glutAddSubMenu("Textures", texturemenu);
 
 #ifdef DEMO_DEPTH_BUFFER
 	glutAddSubMenu("Depth Buffer", depthbuffermenu);
@@ -776,7 +815,7 @@ InitGraphics()
 	glutTabletButtonFunc(NULL);
 	glutMenuStateFunc(NULL);
 	glutTimerFunc(-1, NULL, 0);
-	glutIdleFunc(NULL);
+	glutIdleFunc(Animate);
 
 	// init glew (a window must be open to do this):
 
@@ -790,6 +829,24 @@ InitGraphics()
 		fprintf(stderr, "GLEW initialized OK\n");
 	fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 #endif
+
+	ShaderAnimation = 0;
+	ShaderAnimationPositive = true;
+
+	int width, height;
+	width = 1024;
+	height = 512;
+	unsigned char* EarthTexture = BmpToTexture("worldtex.bmp", &width, &height);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glGenTextures(1, &Tex0);
+	glBindTexture(GL_TEXTURE_2D, Tex0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, EarthTexture);
+	glMatrixMode(GL_TEXTURE);
 
 	Pattern = new GLSLProgram();
 	bool valid = Pattern->Create("pattern.vert", "pattern.frag");
@@ -814,65 +871,10 @@ InitGraphics()
 void
 InitLists()
 {
-	float dx = BOXSIZE / 2.f;
-	float dy = BOXSIZE / 2.f;
-	float dz = BOXSIZE / 2.f;
-	glutSetWindow(MainWindow);
-
-	// create the object:
-
-	BoxList = glGenLists(1);
-	glNewList(BoxList, GL_COMPILE);
-
-	glBegin(GL_QUADS);
-
-	glColor3f(0., 0., 1.);
-	glNormal3f(0., 0., 1.);
-	glVertex3f(-dx, -dy, dz);
-	glVertex3f(dx, -dy, dz);
-	glVertex3f(dx, dy, dz);
-	glVertex3f(-dx, dy, dz);
-
-	glNormal3f(0., 0., -1.);
-	glTexCoord2f(0., 0.);
-	glVertex3f(-dx, -dy, -dz);
-	glTexCoord2f(0., 1.);
-	glVertex3f(-dx, dy, -dz);
-	glTexCoord2f(1., 1.);
-	glVertex3f(dx, dy, -dz);
-	glTexCoord2f(1., 0.);
-	glVertex3f(dx, -dy, -dz);
-
-	glColor3f(1., 0., 0.);
-	glNormal3f(1., 0., 0.);
-	glVertex3f(dx, -dy, dz);
-	glVertex3f(dx, -dy, -dz);
-	glVertex3f(dx, dy, -dz);
-	glVertex3f(dx, dy, dz);
-
-	glNormal3f(-1., 0., 0.);
-	glVertex3f(-dx, -dy, dz);
-	glVertex3f(-dx, dy, dz);
-	glVertex3f(-dx, dy, -dz);
-	glVertex3f(-dx, -dy, -dz);
-
-	glColor3f(0., 1., 0.);
-	glNormal3f(0., 1., 0.);
-	glVertex3f(-dx, dy, dz);
-	glVertex3f(dx, dy, dz);
-	glVertex3f(dx, dy, -dz);
-	glVertex3f(-dx, dy, -dz);
-
-	glNormal3f(0., -1., 0.);
-	glVertex3f(-dx, -dy, dz);
-	glVertex3f(-dx, -dy, -dz);
-	glVertex3f(dx, -dy, -dz);
-	glVertex3f(dx, -dy, dz);
-
-	glEnd();
-
+	SphereList = glGenLists(1);
+	glNewList(SphereList, GL_COMPILE);
+	OsuSphere(radius, slices, stacks);
 	glEndList();
-
 
 	// create the axes:
 
@@ -1455,70 +1457,6 @@ Unit(float vin[3], float vout[3])
 	return dist;
 }
 
-float* Array3(float a, float b, float c)
-{
-	static float array[4];
-	array[0] = a;
-	array[1] = b;
-	array[2] = c;
-	array[3] = 1.;
-	return array;
-}
-
-// utility to create an array from a multiplier and an array:
-float* MulArray3(float factor, float array0[3])
-{
-	static float array[4];
-	array[0] = factor * array0[0];
-	array[1] = factor * array0[1];
-	array[2] = factor * array0[2];
-	array[3] = 1.;
-	return array;
-}
-
-void SetPointLight(int ilight, float x, float y, float z, float r, float g, float b)
-{
-	glLightfv(ilight, GL_POSITION, Array3(x, y, z));
-	glLightfv(ilight, GL_AMBIENT, Array3(0., 0., 0.));
-	glLightfv(ilight, GL_DIFFUSE, Array3(r, g, b));
-	glLightfv(ilight, GL_SPECULAR, Array3(r, g, b));
-	glLightf(ilight, GL_CONSTANT_ATTENUATION, 1.);
-	glLightf(ilight, GL_LINEAR_ATTENUATION, 0.);
-	glLightf(ilight, GL_QUADRATIC_ATTENUATION, 0.);
-	glEnable(ilight);
-}
-
-void SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b)
-{
-	glLightfv(ilight, GL_POSITION, Array3(x, y, z));
-	glLightfv(ilight, GL_SPOT_DIRECTION, Array3(xdir, ydir, zdir));
-	glLightf(ilight, GL_SPOT_EXPONENT, 1.);
-	glLightf(ilight, GL_SPOT_CUTOFF, 45.);
-	glLightfv(ilight, GL_AMBIENT, Array3(0., 0., 0.));
-	glLightfv(ilight, GL_DIFFUSE, Array3(r, g, b));
-	glLightfv(ilight, GL_SPECULAR, Array3(r, g, b));
-	glLightf(ilight, GL_CONSTANT_ATTENUATION, 1.);
-	glLightf(ilight, GL_LINEAR_ATTENUATION, 0.);
-	glLightf(ilight, GL_QUADRATIC_ATTENUATION, 0.);
-	glEnable(ilight);
-}
-
-void SetMaterial(float r, float g, float b, float shininess)
-{
-	glMaterialfv(GL_BACK, GL_EMISSION, Array3(0., 0., 0.));
-	glMaterialfv(GL_BACK, GL_AMBIENT, MulArray3(.4f, White));
-	glMaterialfv(GL_BACK, GL_DIFFUSE, MulArray3(1., White));
-	glMaterialfv(GL_BACK, GL_SPECULAR, Array3(0., 0., 0.));
-	glMaterialf(GL_BACK, GL_SHININESS, 2.f);
-
-	glMaterialfv(GL_FRONT, GL_EMISSION, Array3(0., 0., 0.));
-	glMaterialfv(GL_FRONT, GL_AMBIENT, Array3(r, g, b));
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, Array3(r, g, b));
-	glMaterialfv(GL_FRONT, GL_SPECULAR, MulArray3(.8f, White));
-	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
-}
-
-// Code for sphere
 struct point {
 	float x, y, z;		// coordinates
 	float nx, ny, nz;	// surface normal
@@ -1589,7 +1527,13 @@ OsuSphere(float radius, int slices, int stacks)
 			p->ny = y;
 			p->nz = z;
 			p->s = (lng + M_PI) / (2. * M_PI);
-			p->t = (lat + M_PI / 2.) / M_PI;
+			// Apply distortion to t value if option selected from Texture submenu
+			if (WhichTexture == 2) {
+				p->t = (lat + M_PI / 2.) / M_PI + (-2 * Time);
+			}
+			else {
+				p->t = (lat + M_PI / 2.) / M_PI;
+			}
 		}
 	}
 
@@ -1665,4 +1609,54 @@ OsuSphere(float radius, int slices, int stacks)
 
 	delete[] Pts;
 	Pts = NULL;
+}
+
+float* Array3(float a, float b, float c)
+{
+	static float array[4];
+	array[0] = a;
+	array[1] = b;
+	array[2] = c;
+	array[3] = 1.;
+	return array;
+}
+
+float* MulArray3(float factor, float array0[3])
+{
+	static float array[4];
+	array[0] = factor * array0[0];
+	array[1] = factor * array0[1];
+	array[2] = factor * array0[2];
+	array[3] = 1.;
+	return array;
+}
+
+void SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b)
+{
+	glLightfv(ilight, GL_POSITION, Array3(x, y, z));
+	glLightfv(ilight, GL_SPOT_DIRECTION, Array3(xdir, ydir, zdir));
+	glLightf(ilight, GL_SPOT_EXPONENT, 1.);
+	glLightf(ilight, GL_SPOT_CUTOFF, 45.);
+	glLightfv(ilight, GL_AMBIENT, Array3(0., 0., 0.));
+	glLightfv(ilight, GL_DIFFUSE, Array3(r, g, b));
+	glLightfv(ilight, GL_SPECULAR, Array3(r, g, b));
+	glLightf(ilight, GL_CONSTANT_ATTENUATION, 1.);
+	glLightf(ilight, GL_LINEAR_ATTENUATION, 0.);
+	glLightf(ilight, GL_QUADRATIC_ATTENUATION, 0.);
+	glEnable(ilight);
+}
+
+void SetMaterial(float r, float g, float b, float shininess)
+{
+	glMaterialfv(GL_BACK, GL_EMISSION, Array3(0., 0., 0.));
+	glMaterialfv(GL_BACK, GL_AMBIENT, MulArray3(.4f, White));
+	glMaterialfv(GL_BACK, GL_DIFFUSE, MulArray3(1., White));
+	glMaterialfv(GL_BACK, GL_SPECULAR, Array3(0., 0., 0.));
+	glMaterialf(GL_BACK, GL_SHININESS, 2.f);
+
+	glMaterialfv(GL_FRONT, GL_EMISSION, Array3(0., 0., 0.));
+	glMaterialfv(GL_FRONT, GL_AMBIENT, Array3(r, g, b));
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, Array3(r, g, b));
+	glMaterialfv(GL_FRONT, GL_SPECULAR, MulArray3(.8f, White));
+	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
 }
