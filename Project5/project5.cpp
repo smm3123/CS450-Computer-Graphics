@@ -316,7 +316,7 @@ Animate()
 	ms %= MS_IN_THE_ANIMATION_CYCLE;
 	Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
 
-	float animationInterval = 0.01;
+	float animationInterval = 0.008;
 
 	// Light Position animations
 	if (ShaderAnimation >= 1)
