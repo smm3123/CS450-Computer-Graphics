@@ -206,7 +206,10 @@ GLuint	Tex0;					// Earth texture
 float	ShaderAnimation;		// Value for shader animation
 bool	ShaderAnimationPositive;// Value for if the value should be incrementing or decrementing
 
+// Shader parameters
 GLSLProgram* Pattern;
+bool fragActive;
+bool vertActive;
 
 // Animation parameters
 float Time;
@@ -316,7 +319,7 @@ Animate()
 	ms %= MS_IN_THE_ANIMATION_CYCLE;
 	Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
 
-	float animationInterval = 0.008;
+	float animationInterval = 0.004;
 
 	// Light Position animations
 	if (ShaderAnimation >= 1)
@@ -450,6 +453,9 @@ Display()
 
 	Pattern->Use();
 	Pattern->SetUniformVariable("uTime", ShaderAnimation);
+	Pattern->SetUniformVariable("uVertActive", vertActive);
+	Pattern->SetUniformVariable("uFragActive", fragActive);
+
 	// draw the current object:
 	glShadeModel(GL_FLAT);
 	if (WhichTexture == 0 || WhichTexture == 2) {
@@ -457,7 +463,6 @@ Display()
 		//glBindTexture(GL_TEXTURE_2D, Tex0);
 	}
 	glCallList(SphereList);
-	SetMaterial(0.5, 0.3, 1., 10);
 	if (WhichTexture == 0 || WhichTexture == 2) {
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -832,6 +837,8 @@ InitGraphics()
 
 	ShaderAnimation = 0;
 	ShaderAnimationPositive = true;
+	vertActive = true;
+	fragActive = true;
 
 	int width, height;
 	width = 1024;
@@ -913,6 +920,22 @@ Keyboard(unsigned char c, int x, int y)
 		DoMainMenu(QUIT);	// will not return here
 		break;				// happy compiler
 
+	case 'b':
+		vertActive = true;
+		fragActive = true;
+		break;
+	case 'f':
+		vertActive = false;
+		fragActive = false;
+		break;
+	case 'F':
+		vertActive = false;
+		fragActive = true;
+		break;
+	case 'V':
+		vertActive = true;
+		fragActive = false;
+		break;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
 	}
