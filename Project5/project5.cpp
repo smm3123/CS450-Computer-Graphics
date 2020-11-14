@@ -214,6 +214,7 @@ bool vertActive;
 // Animation parameters
 float Time;
 #define MS_IN_THE_ANIMATION_CYCLE	4000
+float animationInterval = 0.004;
 
 // Sphere parameters
 int	radius = 1;
@@ -319,7 +320,6 @@ Animate()
 	ms %= MS_IN_THE_ANIMATION_CYCLE;
 	Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
 
-	float animationInterval = 0.004;
 
 	// Light Position animations
 	if (ShaderAnimation >= 1)
@@ -470,7 +470,7 @@ Display()
 
 	xyz spot1Position = { 5., -2., -2. };
 	SetSpotLight(GL_LIGHT0, spot1Position.x, spot1Position.y, spot1Position.z, -spot1Position.x, -spot1Position.y, -spot1Position.z, 1, 1, 1);
-
+	glDisable(GL_LIGHTING);
 #ifdef DEMO_Z_FIGHTING
 	if (DepthFightingOn != 0)
 	{
@@ -923,18 +923,22 @@ Keyboard(unsigned char c, int x, int y)
 	case 'b':
 		vertActive = true;
 		fragActive = true;
+		animationInterval = 0.004;
 		break;
 	case 'f':
 		vertActive = false;
 		fragActive = false;
+		animationInterval = 0.;
 		break;
 	case 'F':
 		vertActive = false;
 		fragActive = true;
+		animationInterval = 0.004;
 		break;
 	case 'V':
 		vertActive = true;
 		fragActive = false;
+		animationInterval = 0.004;
 		break;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
