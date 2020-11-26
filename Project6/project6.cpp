@@ -195,6 +195,8 @@ float	Xrot, Yrot;				// rotation angles in degrees
 
 // Curve parameters
 #define NUMCURVES	5
+bool pointsOn = false;
+bool linesOn = false;
 
 // Animation parameters
 float Time;
@@ -203,7 +205,7 @@ float animationInterval = 0.004;
 bool freeze = false;
 
 // Sphere parameters
-int	radius = 1;
+float radius = 0.07;
 int slices = 30;
 int stacks = 30;
 
@@ -444,17 +446,29 @@ Display()
 
 	// draw the current object:
 	for (int i = 0; i < NUMCURVES; i++) {
-		Curves[i].p0 = { 0., 0., 0. };
+		// Set one of the points right at the origin
+		Curves[i].p0.x = 0;
+		Curves[i].p0.y = 0;
+		Curves[i].p0.z = 0;
 
-		Curves[i].p1.x = cos(Time) * 2 * Time;
+		if (i == 0)
+			Curves[i].p1.x = -(cos(Time) * 2);
+		else
+			Curves[i].p1.x = cos(Time) * 2 * Time;
 		Curves[i].p1.y = i;
 		Curves[i].p1.z = sin(Time) * 2 + i;
 
-		Curves[i].p2.x = cos(Time) * 3;
+		if (i == 0)
+			Curves[i].p2.x = -(cos(Time) * 2);
+		else
+			Curves[i].p2.x = cos(Time) * 3;
 		Curves[i].p2.y = i;
 		Curves[i].p2.z = sin(Time) * 3 + (i * 2);
 
-		Curves[i].p2.x = cos(Time) * 4;
+		if (i == 0)
+			Curves[i].p2.x = -(cos(Time) * 2);
+		else
+			Curves[i].p2.x = cos(Time) * 4;
 		Curves[i].p2.y = i;
 		Curves[i].p2.z = sin(Time) * 4 + (i / 2);
 
@@ -936,6 +950,13 @@ Keyboard(unsigned char c, int x, int y)
 		break;				// happy compiler
 	case 'f':
 		freeze = !freeze;
+		break;
+	case 'c':
+		pointsOn = !pointsOn;
+		break;
+	case 'l':
+		linesOn = !linesOn;
+		break;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
 	}
@@ -1680,6 +1701,47 @@ void BezierCurve(Curve* curve) {
 	struct Point p1 = curve->p1;
 	struct Point p2 = curve->p2;
 	struct Point p3 = curve->p3;
+
+	// Draws spheres at the corners of each curve
+	if (pointsOn) {
+		glPushMatrix();
+		glColor3f(1, 1, 1);
+		glTranslatef(p0.x, p0.y, p0.z);
+		OsuSphere(radius, slices, stacks);
+		glPopMatrix();
+
+		glPushMatrix();
+		glColor3f(1, 1, 1);
+		glTranslatef(p1.x, p1.y, p1.z);
+		OsuSphere(radius, slices, stacks);
+		glPopMatrix();
+
+		glPushMatrix();
+		glColor3f(1, 1, 1);
+		glTranslatef(p2.x, p2.y, p2.z);
+		OsuSphere(radius, slices, stacks);
+		glPopMatrix();
+
+		glPushMatrix();
+		glColor3f(1, 1, 1);
+		glTranslatef(p3.x, p3.y, p3.z);
+		OsuSphere(radius, slices, stacks);
+		glPopMatrix();
+	}
+
+	// Draws lines connecting the points for the curve
+	if (linesOn) {
+		glPushMatrix();
+		glLineWidth(1.);
+		glBegin(GL_LINE_STRIP);
+		glColor3f(1., 1., 1.);
+		glVertex3f(p0.x, p0.y, p0.z);
+		glVertex3f(p1.x, p1.y, p1.z);
+		glVertex3f(p2.x, p2.y, p2.z);
+		glVertex3f(p3.x, p3.y, p3.z);
+		glEnd();
+		glPopMatrix();
+	}
 
 	int pts = 20;
 	float t, tDiffVal, x, y, z;
