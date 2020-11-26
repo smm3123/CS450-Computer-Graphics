@@ -261,7 +261,7 @@ void			OsuSphere(float radius, int slices, int stacks);
 void			RotateX(Point* p, float deg, float xc, float yc, float zc);
 void			RotateY(Point* p, float deg, float xc, float yc, float zc);
 void			RotateZ(Point* p, float deg, float xc, float yc, float zc);
-void			CatmullRomCurve(Curve* curve);
+void			BezierCurve(Curve* curve);
 
 
 // main program:
@@ -444,23 +444,23 @@ Display()
 		Curve c;
 		Curves[i].p0 = { 0., 0., 0. };
 
-		Curves[i].p1.x = cos(Time) * 2;
-		Curves[i].p1.y = 1.;
+		Curves[i].p1.x = cos(Time) * 2 * Time;
+		Curves[i].p1.y = i;
 		Curves[i].p1.z = sin(Time) * 2;
 
 		Curves[i].p2.x = cos(Time) * 3;
-		Curves[i].p2.y = 1.;
+		Curves[i].p2.y = i;
 		Curves[i].p2.z = sin(Time) * 3;
 
 		Curves[i].p2.x = cos(Time) * 4;
-		Curves[i].p2.y = 1.;
+		Curves[i].p2.y = i;
 		Curves[i].p2.z = sin(Time) * 4;
 
-		Curves[i].r = 0.7;
-		Curves[i].g = 0.3;
+		Curves[i].r = (float)(i / NUMCURVES) / 2;
+		Curves[i].g = (float)i / NUMCURVES;
 		Curves[i].b = 0.7;
 
-		CatmullRomCurve(&Curves[i]);
+		BezierCurve(&Curves[i]);
 	}
 
 
@@ -1671,25 +1671,28 @@ void RotateZ(Point* p, float deg, float xc, float yc, float zc)
 	p->z = zp + zc;
 }
 
-void CatmullRomCurve(Curve* curve) {
-	Point p0 = curve->p0;
-	Point p1 = curve->p1;
-	Point p2 = curve->p2;
-	Point p3 = curve->p3;
-	float x, y, z;
+void BezierCurve(Curve* curve) {
+	struct Point p0 = curve->p0;
+	struct Point p1 = curve->p1;
+	struct Point p2 = curve->p2;
+	struct Point p3 = curve->p3;
 
+	int pts = 20;
+	float t, tDiffVal, x, y, z;
 	glLineWidth(5.);
-	glColor3f(curve->r, curve->g, curve->b);
+
 	glBegin(GL_LINE_STRIP);
-	int tLength = 20;
-	float t;
-	for (int i = 0; i <= tLength; i++) {
-		t = i / tLength;
-		x = 0.5 * (2 * p1.x + t * (-p0.x + p2.x) + (t * t) * (2 * p0.x - 5. * p1.x + 4 * p2.x - p3.x) + (t * t * t) * (-p0.x + 3 * p1.x - 3 * p1.x - 3 * p1.x + p3.x));
-		y = 0.5 * (2 * p1.y + t * (-p0.y + p2.y) + (t * t) * (2 * p0.y - 5. * p1.y + 4 * p2.y - p3.y) + (t * t * t) * (-p0.y + 3 * p1.y - 3 * p1.y - 3 * p1.y + p3.y));
-		z = 0.5 * (2 * p1.z + t * (-p0.z + p2.z) + (t * t) * (2 * p0.z - 5. * p1.z + 4 * p2.z - p3.z) + (t * t * t) * (-p0.z + 3 * p1.z - 3 * p1.z - 3 * p1.z + p3.z));
+	glColor3f(curve->r, curve->g, curve->b);
+	for (int i = 0; i <= pts; i++)
+	{
+		t = (float)i / pts;
+		tDiffVal = 1.f - t;
+		x = tDiffVal * tDiffVal * tDiffVal * p0.x + 3.f * t * tDiffVal * tDiffVal * p1.x + 3.f * t * t * tDiffVal * p2.x + t * t * t * p3.x;
+		y = tDiffVal * tDiffVal * tDiffVal * p0.y + 3.f * t * tDiffVal * tDiffVal * p1.y + 3.f * t * t * tDiffVal * p2.y + t * t * t * p3.y;
+		z = tDiffVal * tDiffVal * tDiffVal * p0.z + 3.f * t * tDiffVal * tDiffVal * p1.z + 3.f * t * t * tDiffVal * p2.z + t * t * t * p3.z;
 		glVertex3f(x, y, z);
 	}
 	glEnd();
-	glLineWidth(1.);
+
+	glColor3f(1., 1., 1.);
 }
