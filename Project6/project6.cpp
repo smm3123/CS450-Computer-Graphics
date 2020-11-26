@@ -194,12 +194,13 @@ int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 
 // Curve parameters
-#define NUMCURVES	6
+#define NUMCURVES	5
 
 // Animation parameters
 float Time;
 #define MS_IN_THE_ANIMATION_CYCLE	4000
 float animationInterval = 0.004;
+bool freeze = false;
 
 // Sphere parameters
 int	radius = 1;
@@ -317,9 +318,11 @@ Animate()
 {
 	// put animation stuff in here -- change some global variables
 	// for Display( ) to find:
-	int ms = glutGet(GLUT_ELAPSED_TIME);	// milliseconds
-	ms %= MS_IN_THE_ANIMATION_CYCLE;
-	Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
+	if (!freeze) {
+		int ms = glutGet(GLUT_ELAPSED_TIME);	// milliseconds
+		ms %= MS_IN_THE_ANIMATION_CYCLE;
+		Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
+	}
 
 	// force a call to Display( ) next time it is convenient:
 
@@ -441,20 +444,20 @@ Display()
 
 	// draw the current object:
 	for (int i = 0; i < NUMCURVES; i++) {
-		Curve c;
 		Curves[i].p0 = { 0., 0., 0. };
 
 		Curves[i].p1.x = cos(Time) * 2 * Time;
 		Curves[i].p1.y = i;
-		Curves[i].p1.z = sin(Time) * 2;
+		Curves[i].p1.z = sin(Time) * 2 + i;
 
 		Curves[i].p2.x = cos(Time) * 3;
 		Curves[i].p2.y = i;
-		Curves[i].p2.z = sin(Time) * 3;
+		Curves[i].p2.z = sin(Time) * 3 + (i * 2);
 
 		Curves[i].p2.x = cos(Time) * 4;
 		Curves[i].p2.y = i;
-		Curves[i].p2.z = sin(Time) * 4;
+		Curves[i].p2.z = sin(Time) * 4 + (i / 2);
+
 
 		Curves[i].r = (float)(i / NUMCURVES) / 2;
 		Curves[i].g = (float)i / NUMCURVES;
@@ -931,7 +934,8 @@ Keyboard(unsigned char c, int x, int y)
 	case ESCAPE:
 		DoMainMenu(QUIT);	// will not return here
 		break;				// happy compiler
-
+	case 'f':
+		freeze = !freeze;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
 	}
