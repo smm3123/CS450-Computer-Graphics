@@ -206,8 +206,10 @@ bool	Frozen;					// Parameter for if the animation is frozen or not
 
 // Light parameters
 bool Light0On = true;
-bool Light1On = true;
-bool Light2On = true;
+
+// View mode
+int viewMode = 0; // 0 - default (sun), 1 - earth, 2 - moon
+bool isCenter = false;
 
 // Animation parameters
 float LightPositionAnimation;
@@ -216,7 +218,7 @@ bool LightPositive = true;
 bool LightPositionPositive = true;
 float LightAnimationInterval = 0.005;
 float Time;
-#define MS_PER_CYCLE	10000
+#define MS_PER_CYCLE	15000
 #define LIGHT_MS_PER_CYCLE 10000
 
 // Sphere parameters
@@ -415,9 +417,15 @@ Display()
 	glLoadIdentity();
 
 
+	int distanceFromSun = 6;
+	int distanceFromEarth = 2;
+
 	// set the eye position, look-at position, and up-vector:
 
-	gluLookAt(0., 0., 3., 0., 0., 0., 0., 1., 0.);
+	if (viewMode == 0)
+		gluLookAt(0., 0., 3., 0., 0., 0., 0., 1., 0.);
+	else if (viewMode == 1)
+		gluLookAt(0., 0., 4., 1.5, 0., 0., 1., 1., 0.);
 
 
 	// rotate the scene:
@@ -479,9 +487,6 @@ Display()
 
 	glEnable(GL_LIGHTING);
 
-	int distanceFromSun = 6;
-	int distanceFromEarth = 2;
-
 	// draw the Earth object, and make it rotate:
 	glShadeModel(GL_SMOOTH);
 	SetMaterial(1, 1, 1, 10);
@@ -489,9 +494,11 @@ Display()
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, EarthTex);
 	glPushMatrix();
-	glRotatef(360. * Time, 0., 1., 0.);
-	glTranslatef(distanceFromSun, 0, 0);
-	glRotatef(360. * Time * 2, 0., 1., 0.);
+	if (!isCenter) {
+		glRotatef(-360. * Time, 0., 1., 0.);
+		glTranslatef(distanceFromSun, 0, 0);
+	}
+	glRotatef(-360. * Time * 2, 0., 1., 0.);
 	glScalef(0.8, 0.8, 0.8);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
@@ -504,10 +511,15 @@ Display()
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, MoonTex);
 	glPushMatrix();
-	glTranslatef(distanceFromEarth, 0, 0);
-	glRotatef(360. * Time, 0., 1., 0.);
-	glTranslatef(distanceFromSun, 0, 0);
-	glRotatef(360. * Time * 2, 0., 1., 0.);
+	if (!isCenter) {
+		glTranslatef(distanceFromEarth, 0, 0);
+		glRotatef(-360. * Time, 0., 1., 0.);
+		glTranslatef(distanceFromSun, 0, 0);
+	}
+	else {
+		glRotatef(-360. * Time, 0., 1., 0.);
+	}
+	glRotatef(-360. * Time * 2, 0., 1., 0.);
 	glScalef(0.2, 0.2, 0.2);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
@@ -522,14 +534,6 @@ Display()
 		glEnable(GL_LIGHT0);
 	else
 		glDisable(GL_LIGHT0);
-	if (Light1On)
-		glEnable(GL_LIGHT1);
-	else
-		glDisable(GL_LIGHT1);
-	if (Light2On)
-		glEnable(GL_LIGHT2);
-	else
-		glDisable(GL_LIGHT2);
 
 
 #ifdef DEMO_Z_FIGHTING
@@ -987,11 +991,17 @@ Keyboard(unsigned char c, int x, int y)
 	case '0':
 		Light0On = !Light0On;
 		break;
-	case '1':
-		Light1On = !Light1On;
+	case 's': // Sun
+		viewMode = 0;
 		break;
-	case '2':
-		Light2On = !Light2On;
+	case 'e': // Earth
+		viewMode = 1;
+		break;
+	case 'm': // Moon
+		viewMode = 2;
+		break;
+	case 'c':
+		isCenter = !isCenter;
 		break;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
