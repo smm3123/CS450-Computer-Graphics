@@ -14,6 +14,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include "glut.h"
+#include "loadobjfile.cpp""
 
 
 //	This is a sample OpenGL / GLUT program
@@ -138,6 +139,12 @@ char* ColorNames[] =
 	"Black"
 };
 
+struct xyz {
+	float x;
+	float y;
+	float z;
+};
+
 // the color definitions:
 // this order must match the menu order
 
@@ -152,7 +159,7 @@ const GLfloat Colors[][3] =
 	{ 1., 1., 1. },		// white
 	{ 0., 0., 0. },		// black
 };
-
+GLfloat White[] = { 1., 1., 1., 1. };
 // fog parameters:
 
 const GLfloat FOGCOLOR[4] = { .0, .0, .0, 1. };
@@ -192,38 +199,31 @@ int		WhichColor;				// index into Colors[ ]
 int		WhichProjection;		// ORTHO or PERSP
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
+GLuint	EarthTex;				// Cement texture
+GLuint	SunTex;					// Sun texture
+GLuint	MoonTex;				// Moon texture
+bool	Frozen;					// Parameter for if the animation is frozen or not
 
-// Curve parameters
-#define NUMCURVES	5
-bool pointsOn = false;
-bool linesOn = false;
+// Light parameters
+bool Light0On = true;
+bool Light1On = true;
+bool Light2On = true;
 
 // Animation parameters
+float LightPositionAnimation;
+float LightAnimation;
+bool LightPositive = true;
+bool LightPositionPositive = true;
+float LightAnimationInterval = 0.005;
 float Time;
-#define MS_IN_THE_ANIMATION_CYCLE	4000
-float animationInterval = 0.004;
-bool freeze = false;
+#define MS_PER_CYCLE	7000
+#define LIGHT_MS_PER_CYCLE 10000
 
 // Sphere parameters
-float radius = 0.07;
+int	radius = 1;
 int slices = 30;
 int stacks = 30;
 
-
-struct Point
-{
-	float x0, y0, z0;       // initial coordinates
-	float x, y, z;        // animated coordinates
-};
-
-struct Curve
-{
-	float r, g, b;
-	Point p0, p1, p2, p3;
-	int count;
-};
-
-Curve Curves[NUMCURVES];		// if you are creating a pattern of curves
 
 // function prototypes:
 
@@ -250,6 +250,9 @@ void	MouseMotion(int, int);
 void	Reset();
 void	Resize(int, int);
 void	Visibility(int);
+void	SetPointLight(int ilight, float x, float y, float z, float r, float g, float b);
+void	SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b);
+void	SetMaterial(float r, float g, float b, float shininess);
 
 void			Axes(float);
 unsigned char* BmpToTexture(char*, int*, int*);
@@ -260,12 +263,9 @@ short			ReadShort(FILE*);
 void			Cross(float[3], float[3], float[3]);
 float			Dot(float[3], float[3]);
 float			Unit(float[3], float[3]);
+float* Array3(float a, float b, float c);
+float* MulArray3(float factor, float array0[3]);
 void			OsuSphere(float radius, int slices, int stacks);
-void			RotateX(Point* p, float deg, float xc, float yc, float zc);
-void			RotateY(Point* p, float deg, float xc, float yc, float zc);
-void			RotateZ(Point* p, float deg, float xc, float yc, float zc);
-void			BezierCurve(Curve* curve);
-
 
 // main program:
 
@@ -320,11 +320,31 @@ Animate()
 {
 	// put animation stuff in here -- change some global variables
 	// for Display( ) to find:
-	if (!freeze) {
-		int ms = glutGet(GLUT_ELAPSED_TIME);	// milliseconds
-		ms %= MS_IN_THE_ANIMATION_CYCLE;
-		Time = (float)ms / (float)MS_IN_THE_ANIMATION_CYCLE;        // [ 0., 1. )
-	}
+	int ms = glutGet(GLUT_ELAPSED_TIME);
+	ms %= MS_PER_CYCLE;
+	Time = (float)ms / (float)MS_PER_CYCLE;		// [0.,1.)
+
+	// Light Position animations
+	if (LightPositionAnimation >= 1)
+		LightPositionPositive = false;
+	else if (LightPositionAnimation <= -1)
+		LightPositionPositive = true;
+
+	if (LightPositionPositive)
+		LightPositionAnimation += LightAnimationInterval;
+	else
+		LightPositionAnimation -= LightAnimationInterval;
+
+	// Light source animations
+	if (LightAnimation >= 1)
+		LightPositive = false;
+	else if (LightAnimation <= 0)
+		LightPositive = true;
+
+	if (LightPositive)
+		LightAnimation += LightAnimationInterval;
+	else
+		LightAnimation -= LightAnimationInterval;
 
 	// force a call to Display( ) next time it is convenient:
 
@@ -444,41 +464,90 @@ Display()
 	glEnable(GL_NORMALIZE);
 
 
-	// draw the current object:
-	for (int i = 0; i < NUMCURVES; i++) {
-		// Set one of the points right at the origin
-		Curves[i].p0.x = 0;
-		Curves[i].p0.y = 0;
-		Curves[i].p0.z = 0;
+	glEnable(GL_LIGHTING);
+	xyz spot1Position = { 5., -2., -2. };
+	xyz spot2Position = { 0., -3., 0. };
+	xyz pointPosition = { 10., 3., 0. };
 
-		if (i == 0)
-			Curves[i].p1.x = -(cos(Time) * 2);
-		else
-			Curves[i].p1.x = cos(Time) * 2 * Time;
-		Curves[i].p1.y = i;
-		Curves[i].p1.z = sin(Time) * 2 + i;
+	// draw the Earth object, and make it rotate:
+	glShadeModel(GL_SMOOTH);
+	SetMaterial(1, 1, 1, 10);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, EarthTex);
+	glPushMatrix();
+	glRotatef(360. * Time, 0., 1., 0.);
+	glTranslatef(7, 0, 0);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
 
-		if (i == 0)
-			Curves[i].p2.x = -(cos(Time) * 2);
-		else
-			Curves[i].p2.x = cos(Time) * 3;
-		Curves[i].p2.y = i;
-		Curves[i].p2.z = sin(Time) * 3 + (i * 2);
+	// draw the Sun object, and make it rotate:
+	glShadeModel(GL_SMOOTH);
+	SetMaterial(1, 1, 1, 10);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, SunTex);
+	glPushMatrix();
+	glRotatef(360. * Time, 0., 1., 0.);
+	glScalef(3., 3., 3.);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
 
-		if (i == 0)
-			Curves[i].p2.x = -(cos(Time) * 2);
-		else
-			Curves[i].p2.x = cos(Time) * 4;
-		Curves[i].p2.y = i;
-		Curves[i].p2.z = sin(Time) * 4 + (i / 2);
+	glDisable(GL_LIGHTING);
+
+	float smallSphereScale = 0.1f;
+	// draw a sphere on the first spot light
+	glPushMatrix();
+	if (Light0On)
+		glColor3f(0., 0.8, 0.8);
+	else
+		glColor3f(0., 0., 0.);
+	glTranslatef(spot1Position.x, spot1Position.y, spot1Position.z);
+	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+
+	// draw a sphere on the moving point light
+	glPushMatrix();
+	if (Light1On)
+		glColor3f(1., 0., 0.);
+	else
+		glColor3f(0., 0., 0.);
+	glTranslatef(pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z);
+	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+
+	// draw a sphere on the second spot light
+	glPushMatrix();
+	if (Light2On)
+		glColor3f(1., 1., 1.);
+	else
+		glColor3f(0., 0., 0.);
+	glTranslatef(spot2Position.x, spot2Position.y, spot2Position.z);
+	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+
+	SetSpotLight(GL_LIGHT0, spot1Position.x, spot1Position.y, spot1Position.z, -spot1Position.x, -spot1Position.y, -spot1Position.z, 0., 0.8, 0.8);
+	SetPointLight(GL_LIGHT1, pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z, 1., 0., 0.);
+	SetSpotLight(GL_LIGHT2, spot2Position.x, spot2Position.y, spot2Position.z, -spot2Position.x, -spot2Position.y, -spot2Position.z, 1., 1., 1.);
 
 
-		Curves[i].r = (float)(i / NUMCURVES) / 2;
-		Curves[i].g = (float)i / NUMCURVES;
-		Curves[i].b = 0.7;
-
-		BezierCurve(&Curves[i]);
-	}
+	if (Light0On)
+		glEnable(GL_LIGHT0);
+	else
+		glDisable(GL_LIGHT0);
+	if (Light1On)
+		glEnable(GL_LIGHT1);
+	else
+		glDisable(GL_LIGHT1);
+	if (Light2On)
+		glEnable(GL_LIGHT2);
+	else
+		glDisable(GL_LIGHT2);
 
 
 #ifdef DEMO_Z_FIGHTING
@@ -490,14 +559,6 @@ Display()
 		glPopMatrix();
 	}
 #endif
-
-
-	// draw some gratuitous text that just rotates on top of the scene:
-
-	/*glDisable(GL_DEPTH_TEST);
-	glColor3f(0., 1., 1.);
-	DoRasterString(0., 1., 0., "Text That Moves");*/
-
 
 	// draw some gratuitous text that is fixed on the screen:
 	//
@@ -841,6 +902,38 @@ InitGraphics()
 	fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 #endif
 
+	LightPositionAnimation = 0;
+	int width, height;
+	width = 1024;
+	height = 512;
+
+	unsigned char* EarthTexture = BmpToTexture("worldtex.bmp", &width, &height);
+	unsigned char* SunTexture = BmpToTexture("sun.bmp", &width, &height);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glGenTextures(1, &EarthTex);
+	glGenTextures(1, &SunTex);
+
+	// Earth texture
+	glBindTexture(GL_TEXTURE_2D, EarthTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, EarthTexture);
+
+	// Sun texture
+	glBindTexture(GL_TEXTURE_2D, SunTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, SunTexture);
+
+	glMatrixMode(GL_TEXTURE);
+
 }
 
 
@@ -852,66 +945,6 @@ InitGraphics()
 void
 InitLists()
 {
-	float dx = BOXSIZE / 2.f;
-	float dy = BOXSIZE / 2.f;
-	float dz = BOXSIZE / 2.f;
-	glutSetWindow(MainWindow);
-
-	// create the object:
-
-	/*BoxList = glGenLists(1);
-	glNewList(BoxList, GL_COMPILE);
-
-	glBegin(GL_QUADS);
-
-	glColor3f(0., 0., 1.);
-	glNormal3f(0., 0., 1.);
-	glVertex3f(-dx, -dy, dz);
-	glVertex3f(dx, -dy, dz);
-	glVertex3f(dx, dy, dz);
-	glVertex3f(-dx, dy, dz);
-
-	glNormal3f(0., 0., -1.);
-	glTexCoord2f(0., 0.);
-	glVertex3f(-dx, -dy, -dz);
-	glTexCoord2f(0., 1.);
-	glVertex3f(-dx, dy, -dz);
-	glTexCoord2f(1., 1.);
-	glVertex3f(dx, dy, -dz);
-	glTexCoord2f(1., 0.);
-	glVertex3f(dx, -dy, -dz);
-
-	glColor3f(1., 0., 0.);
-	glNormal3f(1., 0., 0.);
-	glVertex3f(dx, -dy, dz);
-	glVertex3f(dx, -dy, -dz);
-	glVertex3f(dx, dy, -dz);
-	glVertex3f(dx, dy, dz);
-
-	glNormal3f(-1., 0., 0.);
-	glVertex3f(-dx, -dy, dz);
-	glVertex3f(-dx, dy, dz);
-	glVertex3f(-dx, dy, -dz);
-	glVertex3f(-dx, -dy, -dz);
-
-	glColor3f(0., 1., 0.);
-	glNormal3f(0., 1., 0.);
-	glVertex3f(-dx, dy, dz);
-	glVertex3f(dx, dy, dz);
-	glVertex3f(dx, dy, -dz);
-	glVertex3f(-dx, dy, -dz);
-
-	glNormal3f(0., -1., 0.);
-	glVertex3f(-dx, -dy, dz);
-	glVertex3f(-dx, -dy, -dz);
-	glVertex3f(dx, -dy, -dz);
-	glVertex3f(dx, -dy, dz);
-
-	glEnd();
-
-	glEndList();*/
-
-
 	// create the axes:
 
 	AxesList = glGenLists(1);
@@ -949,13 +982,21 @@ Keyboard(unsigned char c, int x, int y)
 		DoMainMenu(QUIT);	// will not return here
 		break;				// happy compiler
 	case 'f':
-		freeze = !freeze;
+	case 'F':
+		Frozen = !Frozen;
+		if (Frozen)
+			glutIdleFunc(NULL);
+		else
+			glutIdleFunc(Animate);
 		break;
-	case 'c':
-		pointsOn = !pointsOn;
+	case '0':
+		Light0On = !Light0On;
 		break;
-	case 'l':
-		linesOn = !linesOn;
+	case '1':
+		Light1On = !Light1On;
+		break;
+	case '2':
+		Light2On = !Light2On;
 		break;
 	default:
 		fprintf(stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c);
@@ -1463,17 +1504,6 @@ HsvRgb(float hsv[3], float rgb[3])
 	rgb[2] = b;
 }
 
-void
-Cross(float v1[3], float v2[3], float vout[3])
-{
-	float tmp[3];
-	tmp[0] = v1[1] * v2[2] - v2[1] * v1[2];
-	tmp[1] = v2[0] * v1[2] - v1[0] * v2[2];
-	tmp[2] = v1[0] * v2[1] - v2[0] * v1[1];
-	vout[0] = tmp[0];
-	vout[1] = tmp[1];
-	vout[2] = tmp[2];
-}
 
 float
 Dot(float v1[3], float v2[3])
@@ -1481,26 +1511,70 @@ Dot(float v1[3], float v2[3])
 	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
 
-float
-Unit(float vin[3], float vout[3])
+float* Array3(float a, float b, float c)
 {
-	float dist = vin[0] * vin[0] + vin[1] * vin[1] + vin[2] * vin[2];
-	if (dist > 0.0)
-	{
-		dist = sqrtf(dist);
-		vout[0] = vin[0] / dist;
-		vout[1] = vin[1] / dist;
-		vout[2] = vin[2] / dist;
-	}
-	else
-	{
-		vout[0] = vin[0];
-		vout[1] = vin[1];
-		vout[2] = vin[2];
-	}
-	return dist;
+	static float array[4];
+	array[0] = a;
+	array[1] = b;
+	array[2] = c;
+	array[3] = 1.;
+	return array;
 }
 
+// utility to create an array from a multiplier and an array:
+float* MulArray3(float factor, float array0[3])
+{
+	static float array[4];
+	array[0] = factor * array0[0];
+	array[1] = factor * array0[1];
+	array[2] = factor * array0[2];
+	array[3] = 1.;
+	return array;
+}
+
+void SetPointLight(int ilight, float x, float y, float z, float r, float g, float b)
+{
+	glLightfv(ilight, GL_POSITION, Array3(x, y, z));
+	glLightfv(ilight, GL_AMBIENT, Array3(0., 0., 0.));
+	glLightfv(ilight, GL_DIFFUSE, Array3(r, g, b));
+	glLightfv(ilight, GL_SPECULAR, Array3(r, g, b));
+	glLightf(ilight, GL_CONSTANT_ATTENUATION, 1.);
+	glLightf(ilight, GL_LINEAR_ATTENUATION, 0.);
+	glLightf(ilight, GL_QUADRATIC_ATTENUATION, 0.);
+	glEnable(ilight);
+}
+
+void SetSpotLight(int ilight, float x, float y, float z, float xdir, float ydir, float zdir, float r, float g, float b)
+{
+	glLightfv(ilight, GL_POSITION, Array3(x, y, z));
+	glLightfv(ilight, GL_SPOT_DIRECTION, Array3(xdir, ydir, zdir));
+	glLightf(ilight, GL_SPOT_EXPONENT, 1.);
+	glLightf(ilight, GL_SPOT_CUTOFF, 45.);
+	glLightfv(ilight, GL_AMBIENT, Array3(0., 0., 0.));
+	glLightfv(ilight, GL_DIFFUSE, Array3(r, g, b));
+	glLightfv(ilight, GL_SPECULAR, Array3(r, g, b));
+	glLightf(ilight, GL_CONSTANT_ATTENUATION, 1.);
+	glLightf(ilight, GL_LINEAR_ATTENUATION, 0.);
+	glLightf(ilight, GL_QUADRATIC_ATTENUATION, 0.);
+	glEnable(ilight);
+}
+
+void SetMaterial(float r, float g, float b, float shininess)
+{
+	glMaterialfv(GL_BACK, GL_EMISSION, Array3(0., 0., 0.));
+	glMaterialfv(GL_BACK, GL_AMBIENT, MulArray3(.4f, White));
+	glMaterialfv(GL_BACK, GL_DIFFUSE, MulArray3(1., White));
+	glMaterialfv(GL_BACK, GL_SPECULAR, Array3(0., 0., 0.));
+	glMaterialf(GL_BACK, GL_SHININESS, 2.f);
+
+	glMaterialfv(GL_FRONT, GL_EMISSION, Array3(0., 0., 0.));
+	glMaterialfv(GL_FRONT, GL_AMBIENT, Array3(r, g, b));
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, Array3(r, g, b));
+	glMaterialfv(GL_FRONT, GL_SPECULAR, MulArray3(.8f, White));
+	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+}
+
+// Code for sphere
 struct point {
 	float x, y, z;		// coordinates
 	float nx, ny, nz;	// surface normal
@@ -1528,7 +1602,8 @@ DrawPoint(struct point* p)
 	glVertex3f(p->x, p->y, p->z);
 }
 
-void OsuSphere(float radius, int slices, int stacks)
+void
+OsuSphere(float radius, int slices, int stacks)
 {
 	struct point top, bot;		// top, bottom points
 	struct point* p;
@@ -1646,119 +1721,4 @@ void OsuSphere(float radius, int slices, int stacks)
 
 	delete[] Pts;
 	Pts = NULL;
-}
-
-void RotateX(Point* p, float deg, float xc, float yc, float zc)
-{
-	float rad = deg * (M_PI / 180.f);         // radians
-	float x = p->x0 - xc;
-	float y = p->y0 - yc;
-	float z = p->z0 - zc;
-
-	float xp = x;
-	float yp = y * cos(rad) - z * sin(rad);
-	float zp = y * sin(rad) + z * cos(rad);
-
-	p->x = xp + xc;
-	p->y = yp + yc;
-	p->z = zp + zc;
-}
-
-void RotateY(Point* p, float deg, float xc, float yc, float zc)
-{
-	float rad = deg * (M_PI / 180.f);         // radians
-	float x = p->x0 - xc;
-	float y = p->y0 - yc;
-	float z = p->z0 - zc;
-
-	float xp = x * cos(rad) + z * sin(rad);
-	float yp = y;
-	float zp = -x * sin(rad) + z * cos(rad);
-
-	p->x = xp + xc;
-	p->y = yp + yc;
-	p->z = zp + zc;
-}
-
-void RotateZ(Point* p, float deg, float xc, float yc, float zc)
-{
-	float rad = deg * (M_PI / 180.f);         // radians
-	float x = p->x0 - xc;
-	float y = p->y0 - yc;
-	float z = p->z0 - zc;
-
-	float xp = x * cos(rad) - y * sin(rad);
-	float yp = x * sin(rad) + y * cos(rad);
-	float zp = z;
-
-	p->x = xp + xc;
-	p->y = yp + yc;
-	p->z = zp + zc;
-}
-
-void BezierCurve(Curve* curve) {
-	struct Point p0 = curve->p0;
-	struct Point p1 = curve->p1;
-	struct Point p2 = curve->p2;
-	struct Point p3 = curve->p3;
-
-	// Draws spheres at the corners of each curve
-	if (pointsOn) {
-		glPushMatrix();
-		glColor3f(1, 1, 1);
-		glTranslatef(p0.x, p0.y, p0.z);
-		OsuSphere(radius, slices, stacks);
-		glPopMatrix();
-
-		glPushMatrix();
-		glColor3f(1, 1, 1);
-		glTranslatef(p1.x, p1.y, p1.z);
-		OsuSphere(radius, slices, stacks);
-		glPopMatrix();
-
-		glPushMatrix();
-		glColor3f(1, 1, 1);
-		glTranslatef(p2.x, p2.y, p2.z);
-		OsuSphere(radius, slices, stacks);
-		glPopMatrix();
-
-		glPushMatrix();
-		glColor3f(1, 1, 1);
-		glTranslatef(p3.x, p3.y, p3.z);
-		OsuSphere(radius, slices, stacks);
-		glPopMatrix();
-	}
-
-	// Draws lines connecting the points for the curve
-	if (linesOn) {
-		glPushMatrix();
-		glLineWidth(1.);
-		glBegin(GL_LINE_STRIP);
-		glColor3f(1., 1., 1.);
-		glVertex3f(p0.x, p0.y, p0.z);
-		glVertex3f(p1.x, p1.y, p1.z);
-		glVertex3f(p2.x, p2.y, p2.z);
-		glVertex3f(p3.x, p3.y, p3.z);
-		glEnd();
-		glPopMatrix();
-	}
-
-	int pts = 20;
-	float t, tDiffVal, x, y, z;
-	glLineWidth(5.);
-
-	glBegin(GL_LINE_STRIP);
-	glColor3f(curve->r, curve->g, curve->b);
-	for (int i = 0; i <= pts; i++)
-	{
-		t = (float)i / pts;
-		tDiffVal = 1.f - t;
-		x = tDiffVal * tDiffVal * tDiffVal * p0.x + 3.f * t * tDiffVal * tDiffVal * p1.x + 3.f * t * t * tDiffVal * p2.x + t * t * t * p3.x;
-		y = tDiffVal * tDiffVal * tDiffVal * p0.y + 3.f * t * tDiffVal * tDiffVal * p1.y + 3.f * t * t * tDiffVal * p2.y + t * t * t * p3.y;
-		z = tDiffVal * tDiffVal * tDiffVal * p0.z + 3.f * t * tDiffVal * tDiffVal * p1.z + 3.f * t * t * tDiffVal * p2.z + t * t * t * p3.z;
-		glVertex3f(x, y, z);
-	}
-	glEnd();
-
-	glColor3f(1., 1., 1.);
 }
