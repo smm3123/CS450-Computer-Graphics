@@ -495,6 +495,19 @@ Display()
 	glPopMatrix();
 	glDisable(GL_TEXTURE_2D);
 
+	// draw the Moon object, and make it rotate:
+	glShadeModel(GL_SMOOTH);
+	SetMaterial(1, 1, 1, 10);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, MoonTex);
+	glPushMatrix();
+	glRotatef(360. * Time, 0., 1., 0.);
+	glTranslatef(-7, 0, 0);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
+
 	glDisable(GL_LIGHTING);
 
 	float smallSphereScale = 0.1f;
@@ -906,13 +919,17 @@ InitGraphics()
 	int width, height;
 	width = 1024;
 	height = 512;
+	int moonwidth = width * 2;
+	int moonheight = height * 2;
 
 	unsigned char* EarthTexture = BmpToTexture("worldtex.bmp", &width, &height);
 	unsigned char* SunTexture = BmpToTexture("sun.bmp", &width, &height);
+	unsigned char* MoonTexture = BmpToTexture("moon.bmp", &moonwidth, &moonheight);
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glGenTextures(1, &EarthTex);
 	glGenTextures(1, &SunTex);
+	glGenTextures(1, &MoonTex);
 
 	// Earth texture
 	glBindTexture(GL_TEXTURE_2D, EarthTex);
@@ -931,6 +948,15 @@ InitGraphics()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, SunTexture);
+
+	// Moon texture
+	glBindTexture(GL_TEXTURE_2D, MoonTex);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexImage2D(GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, MoonTexture);
 
 	glMatrixMode(GL_TEXTURE);
 
