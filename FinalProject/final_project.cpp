@@ -464,10 +464,20 @@ Display()
 	glEnable(GL_NORMALIZE);
 
 
+	// draw the Sun object, and make it rotate:
+	glShadeModel(GL_SMOOTH);
+	SetMaterial(1, 1, 1, 10);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, SunTex);
+	glPushMatrix();
+	glRotatef(360. * Time, 0., 1., 0.);
+	glScalef(1., 1., 1.);
+	OsuSphere(radius, slices, stacks);
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
+
 	glEnable(GL_LIGHTING);
-	xyz spot1Position = { 5., -2., -2. };
-	xyz spot2Position = { 0., -3., 0. };
-	xyz pointPosition = { 10., 3., 0. };
 
 	// draw the Earth object, and make it rotate:
 	glShadeModel(GL_SMOOTH);
@@ -477,20 +487,9 @@ Display()
 	glBindTexture(GL_TEXTURE_2D, EarthTex);
 	glPushMatrix();
 	glRotatef(360. * Time, 0., 1., 0.);
-	glTranslatef(7, 0, 0);
-	OsuSphere(radius, slices, stacks);
-	glPopMatrix();
-	glDisable(GL_TEXTURE_2D);
-
-	// draw the Sun object, and make it rotate:
-	glShadeModel(GL_SMOOTH);
-	SetMaterial(1, 1, 1, 10);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, SunTex);
-	glPushMatrix();
-	glRotatef(360. * Time, 0., 1., 0.);
-	glScalef(3., 3., 3.);
+	glTranslatef(4, 0, 0);
+	glRotatef(360. * Time * 2, 0., 1., 0.);
+	glScalef(0.8, 0.8, 0.8);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 	glDisable(GL_TEXTURE_2D);
@@ -502,51 +501,18 @@ Display()
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, MoonTex);
 	glPushMatrix();
+	glTranslatef(1.5, 0, 0);
 	glRotatef(360. * Time, 0., 1., 0.);
-	glTranslatef(-7, 0, 0);
+	glTranslatef(4, 0, 0);
+	glRotatef(360. * Time * 2, 0., 1., 0.);
+	glScalef(0.4, 0.4, 0.4);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 	glDisable(GL_TEXTURE_2D);
 
 	glDisable(GL_LIGHTING);
 
-	float smallSphereScale = 0.1f;
-	// draw a sphere on the first spot light
-	glPushMatrix();
-	if (Light0On)
-		glColor3f(0., 0.8, 0.8);
-	else
-		glColor3f(0., 0., 0.);
-	glTranslatef(spot1Position.x, spot1Position.y, spot1Position.z);
-	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
-	OsuSphere(radius, slices, stacks);
-	glPopMatrix();
-
-	// draw a sphere on the moving point light
-	glPushMatrix();
-	if (Light1On)
-		glColor3f(1., 0., 0.);
-	else
-		glColor3f(0., 0., 0.);
-	glTranslatef(pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z);
-	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
-	OsuSphere(radius, slices, stacks);
-	glPopMatrix();
-
-	// draw a sphere on the second spot light
-	glPushMatrix();
-	if (Light2On)
-		glColor3f(1., 1., 1.);
-	else
-		glColor3f(0., 0., 0.);
-	glTranslatef(spot2Position.x, spot2Position.y, spot2Position.z);
-	glScalef(smallSphereScale, smallSphereScale, smallSphereScale);
-	OsuSphere(radius, slices, stacks);
-	glPopMatrix();
-
-	SetSpotLight(GL_LIGHT0, spot1Position.x, spot1Position.y, spot1Position.z, -spot1Position.x, -spot1Position.y, -spot1Position.z, 0., 0.8, 0.8);
-	SetPointLight(GL_LIGHT1, pointPosition.x * LightPositionAnimation, pointPosition.y, pointPosition.z, 1., 0., 0.);
-	SetSpotLight(GL_LIGHT2, spot2Position.x, spot2Position.y, spot2Position.z, -spot2Position.x, -spot2Position.y, -spot2Position.z, 1., 1., 1.);
+	SetPointLight(GL_LIGHT0, 0., 0., 0., 1., 1., 1.);
 
 
 	if (Light0On)
