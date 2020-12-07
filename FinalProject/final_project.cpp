@@ -216,7 +216,7 @@ bool LightPositive = true;
 bool LightPositionPositive = true;
 float LightAnimationInterval = 0.005;
 float Time;
-#define MS_PER_CYCLE	7000
+#define MS_PER_CYCLE	10000
 #define LIGHT_MS_PER_CYCLE 10000
 
 // Sphere parameters
@@ -472,12 +472,15 @@ Display()
 	glBindTexture(GL_TEXTURE_2D, SunTex);
 	glPushMatrix();
 	glRotatef(360. * Time, 0., 1., 0.);
-	glScalef(1., 1., 1.);
+	glScalef(2., 2., 2.);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 	glDisable(GL_TEXTURE_2D);
 
 	glEnable(GL_LIGHTING);
+
+	int distanceFromSun = 6;
+	int distanceFromEarth = 2;
 
 	// draw the Earth object, and make it rotate:
 	glShadeModel(GL_SMOOTH);
@@ -487,7 +490,7 @@ Display()
 	glBindTexture(GL_TEXTURE_2D, EarthTex);
 	glPushMatrix();
 	glRotatef(360. * Time, 0., 1., 0.);
-	glTranslatef(4, 0, 0);
+	glTranslatef(distanceFromSun, 0, 0);
 	glRotatef(360. * Time * 2, 0., 1., 0.);
 	glScalef(0.8, 0.8, 0.8);
 	OsuSphere(radius, slices, stacks);
@@ -501,11 +504,11 @@ Display()
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, MoonTex);
 	glPushMatrix();
-	glTranslatef(1.5, 0, 0);
+	glTranslatef(distanceFromEarth, 0, 0);
 	glRotatef(360. * Time, 0., 1., 0.);
-	glTranslatef(4, 0, 0);
+	glTranslatef(distanceFromSun, 0, 0);
 	glRotatef(360. * Time * 2, 0., 1., 0.);
-	glScalef(0.4, 0.4, 0.4);
+	glScalef(0.2, 0.2, 0.2);
 	OsuSphere(radius, slices, stacks);
 	glPopMatrix();
 	glDisable(GL_TEXTURE_2D);
